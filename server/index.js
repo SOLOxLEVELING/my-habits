@@ -1,25 +1,45 @@
-require("dotenv").config();
+// index.js (Full application code)
 
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const habitRoutes = require("./routes/habits");
-const { initScheduledJobs } = require("./services/scheduler"); // <-- Import the scheduler
+const habitRoutes = require("./routes/habits"); //
+const { initScheduledJobs } = require("./services/scheduler"); //
 
 const app = express();
+const PORT = process.env.PORT || 5001; // ✅ Using the new, correct port
 
-app.use(cors());
-app.use(express.json());
+// --- MIDDLEWARE SETUP (Order is important!) ---
 
-app.use("/api/habits", habitRoutes);
+// 1. Enable CORS for your frontend origin.
+app.use(cors({ origin: "http://localhost:5173" }));
 
-app.get("/", (req, res) => {
-  res.send("Habit Tracker Backend is running! 🚀");
+// 2. Enable the express.json middleware to parse JSON request bodies.
+app.use(express.json()); //
+
+// 3. Optional: Your logging middleware
+app.use((req, res, next) => {
+  console.log("\n=== Incoming Request ===");
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  console.log(`Origin: ${req.headers.origin}`);
+  next();
 });
 
-const PORT = process.env.PORT || 5000;
+// --- ROUTES ---
+app.use("/api/habits", habitRoutes); //
 
+app.get("/", (req, res) => {
+  res.send("Habit Tracker Backend is running! 🚀"); //
+});
+
+// --- ERROR HANDLING ---
+app.use((err, req, res, next) => {
+  console.error("💥 Unhandled Error:", err.stack);
+  res.status(500).json({ error: "Internal Server Error" }); //
+});
+
+// --- START SERVER ---
 app.listen(PORT, () => {
-  console.log(`Server is listening on port ${PORT}`);
-  // Initialize the cron jobs when the server starts
-  initScheduledJobs(); // <-- Start the scheduler
+  console.log(`Server is listening on port ${PORT}`); //
+  initScheduledJobs(); //
 });

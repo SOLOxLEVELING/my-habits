@@ -1,19 +1,139 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Plus, List, Calendar } from "lucide-react";
 import HabitDashboard from "./pages/HabitDashboard";
 import HabitForm from "./components/HabitForm";
 import TodayView from "./pages/TodayView";
 import HabitDetailPage from "./pages/HabitDetailPage";
-import { initialHabits, habitLogs } from "./data/mockData";
+
+// Helper to convert day numbers from DB to day names for the frontend
+const isoToDayName = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function App() {
-  const [habits, setHabits] = useState(initialHabits);
-  const [logs, setLogs] = useState(habitLogs);
+  // State is now initialized as empty. It will be filled by the API call.
+  const [habits, setHabits] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState(null);
   const [activeView, setActiveView] = useState("today");
   const [selectedHabitId, setSelectedHabitId] = useState(null);
 
+  // --- API FUNCTIONS ---
+
+  // 1. Fetch all habits from the backend
+  const fetchHabits = async () => {
+    try {
+      // === CHANGE THIS LINE ===
+      const response = await fetch("http://localhost:5001/api/habits"); // ✅ Use the full backend URL
+      if (!response.ok) throw new Error("Network response was not ok");
+      let data = await response.json();
+
+      // Format the data from the DB to match what the frontend components expect
+      const formattedHabits = data.map((habit) => {
+        let frequency = [];
+        if (habit.frequency_type === "daily") {
+          frequency = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        } else if (habit.frequency_details?.days) {
+          frequency = habit.frequency_details.days.map(
+            (dayNum) => isoToDayName[dayNum]
+          );
+        }
+        return { ...habit, frequency, logs: habit.logs || [] };
+      });
+
+      setHabits(formattedHabits);
+    } catch (error) {
+      console.error("Failed to fetch habits:", error);
+    }
+  };
+
+  // Run fetchHabits() once when the app loads
+  useEffect(() => {
+    fetchHabits();
+  }, []);
+
+  // 2. Save a new habit or update an existing one
+  const handleSaveHabit = async (formData) => {
+    const isEditing = !!editingHabit;
+    // === CHANGE THIS LINE ===
+    const url = isEditing
+      ? `http://localhost:5001/api/habits/${editingHabit.id}` // ✅ Use the full backend URL
+      : "http://localhost:5001/api/habits"; // ✅ Use the full backend URL
+    const method = isEditing ? "PUT" : "POST";
+
+    try {
+      const response = await fetch(url, {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) throw new Error("Failed to save the habit.");
+
+      await fetchHabits(); // Re-fetch all data to get the latest state from the DB
+      handleCloseForm();
+    } catch (error) {
+      console.error("Error saving habit:", error);
+    }
+  };
+
+  // 3. Delete a habit
+  const handleDeleteHabit = async (habitId) => {
+    if (!window.confirm("Are you sure you want to delete this habit?")) return;
+
+    try {
+      // === CHANGE THIS LINE ===
+      const response = await fetch(
+        `http://localhost:5001/api/habits/${habitId}`,
+        {
+          // ✅ Use the full backend URL
+          method: "DELETE",
+        }
+      );
+      if (!response.ok) throw new Error("Failed to delete the habit.");
+
+      // For a faster UI, we can remove the habit from the local state immediately
+      setHabits((prev) => prev.filter((h) => h.id !== habitId));
+      if (selectedHabitId === habitId) {
+        handleDeselectHabit();
+      }
+    } catch (error) {
+      console.error("Error deleting habit:", error);
+    }
+  };
+
+  // 4. Mark a habit as complete for today
+  const handleToggleComplete = async (habitId) => {
+    const today = new Date().toISOString().split("T")[0]; // Get date in YYYY-MM-DD format
+    try {
+      // === CHANGE THIS LINE ===
+      const response = await fetch(
+        `http://localhost:5001/api/habits/${habitId}/logs`,
+        {
+          // ✅ Use the full backend URL
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: today }),
+        }
+      );
+      if (!response.ok) throw new Error("Failed to log habit completion");
+
+      await fetchHabits(); // Refresh data to get updated streaks and logs
+    } catch (error) {
+      console.error("Error toggling habit completion:", error);
+    }
+  };
+
+  // 5. Save a note for a specific log entry
+  const handleSaveNote = async (habitId, logDate, newNote) => {
+    // Note: Your backend doesn't have a route for updating notes yet.
+    // This will require a new route like: PUT /api/habits/:habitId/logs/:logDate
+    console.log("Note saving not implemented in backend yet.", {
+      habitId,
+      logDate,
+      newNote,
+    });
+  };
+
+  // --- UI Handlers ---
   const handleOpenForm = (habit = null) => {
     setEditingHabit(habit);
     setIsFormOpen(true);
@@ -24,82 +144,31 @@ export default function App() {
     setEditingHabit(null);
   };
 
-  const handleSaveHabit = (habitData) => {
-    if (editingHabit) {
-      // Update existing habit
-      setHabits(
-        habits.map((h) =>
-          h.id === editingHabit.id ? { ...h, ...habitData } : h
-        )
-      );
-    } else {
-      // Add new habit, ensuring reminder fields have default values
-      const newHabit = {
-        ...habitData,
-        id: Date.now(),
-        completed: false,
-        current_streak: 0,
-        longest_streak: 0,
-        // Ensure these are set even if form doesn't send them
-        reminder_enabled: habitData.reminder_enabled || false,
-        reminder_time: habitData.reminder_time || null,
-      };
-      setHabits([...habits, newHabit]);
-    }
-    handleCloseForm();
-  };
-
-  const handleDeleteHabit = (habitId) => {
-    setHabits(habits.filter((h) => h.id !== habitId));
-    const newLogs = { ...logs };
-    delete newLogs[habitId];
-    setLogs(newLogs);
-  };
-
-  const toggleComplete = (habitId) => {
-    setHabits(
-      habits.map((h) =>
-        h.id === habitId ? { ...h, completed: !h.completed } : h
-      )
-    );
-  };
-
   const handleSelectHabit = (id) => setSelectedHabitId(id);
   const handleDeselectHabit = () => setSelectedHabitId(null);
 
-  const handleSaveNote = (habitId, logDate, newNote) => {
-    setLogs((prevLogs) => {
-      const newLogs = { ...prevLogs };
-      const habitLogs = newLogs[habitId].map((log) => {
-        if (log.date === logDate) {
-          return { ...log, note: newNote };
-        }
-        return log;
-      });
-      newLogs[habitId] = habitLogs;
-      return newLogs;
-    });
-  };
-
-  // If a habit is selected, show the detail page
+  // --- Render Logic ---
   if (selectedHabitId) {
     const selectedHabit = habits.find((h) => h.id === selectedHabitId);
-    const selectedLogs = logs[selectedHabitId] || [];
+    // If habit was deleted while being viewed, go back to dashboard
+    if (!selectedHabit) {
+      handleDeselectHabit();
+      return null;
+    }
     return (
       <div className="bg-slate-900 min-h-screen text-white font-sans p-4 sm:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto">
           <HabitDetailPage
             habit={selectedHabit}
-            logs={selectedLogs}
+            logs={selectedHabit.logs}
             onBack={handleDeselectHabit}
-            onSaveNote={handleSaveNote} // <-- Pass the new handler
+            onSaveNote={handleSaveNote}
           />
         </div>
       </div>
     );
   }
 
-  // Otherwise, show the main dashboard with the view switcher
   return (
     <div className="bg-slate-900 min-h-screen text-white font-sans p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
@@ -141,13 +210,16 @@ export default function App() {
 
         <main>
           {activeView === "today" ? (
-            <TodayView habits={habits} onToggleComplete={toggleComplete} />
+            <TodayView
+              habits={habits}
+              onToggleComplete={handleToggleComplete}
+            />
           ) : (
             <HabitDashboard
               habits={habits}
               onEdit={handleOpenForm}
               onDelete={handleDeleteHabit}
-              onToggleComplete={toggleComplete}
+              onToggleComplete={handleToggleComplete}
               onSelect={handleSelectHabit}
             />
           )}
