@@ -20,6 +20,10 @@ router.delete("/:id", habitController.deleteHabit);
 // POST /api/habits/:id/logs - Log a habit completion for a day
 router.post("/:id/logs", habitController.addHabitLog);
 
+// --- ADD THIS NEW ROUTE ---
+// DELETE /api/habits/:id/logs/:date - Remove a log for a specific day
+router.delete("/:id/logs/:date", habitController.deleteHabitLog);
+
 // PUT /api/habits/:habitId/logs - Update a note for a specific log
 router.put("/:habitId/logs", habitController.updateLogNote);
 

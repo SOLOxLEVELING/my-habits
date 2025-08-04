@@ -28,6 +28,20 @@ export default function App() {
 
       // Format the data from the DB to match what the frontend components expect
       const formattedHabits = data.map((habit) => {
+        const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
+        const logs = habit.logs || [];
+
+        // Check if there is a log entry for today
+        // --- THIS IS THE LINE TO CHANGE ---
+
+        // BEFORE:
+        // const completedToday = logs.some((log) => log.log_date === today);
+
+        // AFTER:
+        const completedToday = logs.some(
+          (log) => log.log_date && log.log_date.startsWith(today)
+        );
+
         let frequency = [];
         if (habit.frequency_type === "daily") {
           frequency = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -36,14 +50,19 @@ export default function App() {
             (dayNum) => isoToDayName[dayNum]
           );
         }
-        return { ...habit, frequency, logs: habit.logs || [] };
+        return {
+          ...habit,
+          frequency,
+          logs,
+          completed: completedToday, // <-- Add this calculated property
+        };
       });
 
       setHabits(formattedHabits);
     } catch (error) {
-      console.error("Failed to fetch habits:", error);
+      console.error("Error fetching habits:", error);
     }
-  };
+  }; // <-- Add this closing brace to properly close fetchHabits function
 
   // Run fetchHabits() once when the app loads
   useEffect(() => {
@@ -102,23 +121,43 @@ export default function App() {
 
   // 4. Mark a habit as complete for today
   const handleToggleComplete = async (habitId) => {
-    const today = new Date().toISOString().split("T")[0]; // Get date in YYYY-MM-DD format
-    try {
-      // === CHANGE THIS LINE ===
-      const response = await fetch(
-        `http://localhost:5001/api/habits/${habitId}/logs`,
-        {
-          // ✅ Use the full backend URL
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ date: today }),
-        }
-      );
-      if (!response.ok) throw new Error("Failed to log habit completion");
+    const habitToToggle = habits.find((h) => h.id === habitId);
+    if (!habitToToggle) return;
 
-      await fetchHabits(); // Refresh data to get updated streaks and logs
-    } catch (error) {
-      console.error("Error toggling habit completion:", error);
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const isCompleted = habitToToggle.completed;
+
+    // If the habit is already completed, we want to DELETE the log
+    if (isCompleted) {
+      try {
+        const response = await fetch(
+          `http://localhost:5001/api/habits/${habitId}/logs/${today}`, // Notice the date is now in the URL
+          { method: "DELETE" }
+        );
+        // A 404 is okay here, it might just mean the state was out of sync
+        if (!response.ok && response.status !== 404) {
+          throw new Error("Failed to delete habit log");
+        }
+        await fetchHabits(); // Refresh all data
+      } catch (error) {
+        console.error("Error deleting habit log:", error);
+      }
+    } else {
+      // If the habit is not completed, we want to POST a new log (your existing logic)
+      try {
+        const response = await fetch(
+          `http://localhost:5001/api/habits/${habitId}/logs`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ date: today }),
+          }
+        );
+        if (!response.ok) throw new Error("Failed to log habit completion");
+        await fetchHabits(); // Refresh all data
+      } catch (error) {
+        console.error("Error creating habit log:", error);
+      }
     }
   };
 

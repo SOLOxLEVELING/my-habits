@@ -4,7 +4,11 @@ function CalendarView({ logs, habitColor }) {
   const today = new Date();
   const days = [];
   // Create a set of logged dates for quick lookup
-  const loggedDates = new Set(logs.map((log) => log.date));
+  // BEFORE:
+  // const loggedDates = new Set(logs.map((log) => log.date));
+
+  // AFTER:
+  const loggedDates = new Set(logs.map((log) => log.log_date)); // <-- Use log_date
 
   // Go back 182 days (26 weeks) to fill the calendar
   for (let i = 182; i > 0; i--) {

@@ -17,7 +17,11 @@ exports.getAllHabits = async (req, res) => {
   const userId = 1; // Using a placeholder user ID for now
   try {
     const { rows } = await db.query(
-      `SELECT h.*, s.current_streak, s.longest_streak 
+      `SELECT 
+         h.*, 
+         s.current_streak, 
+         s.longest_streak,
+         (SELECT json_agg(l.* ORDER BY l.log_date DESC) FROM habit_logs l WHERE l.habit_id = h.id) as logs
        FROM habits h
        LEFT JOIN streaks s ON h.id = s.habit_id
        WHERE h.user_id = $1 
@@ -215,6 +219,35 @@ exports.addHabitLog = async (req, res) => {
     res.status(201).json({ message: "Log added successfully", log: rows[0] });
   } catch (error) {
     console.error(`Error adding log for habit ${habit_id}:`, error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Add this new function
+exports.deleteHabitLog = async (req, res) => {
+  const { id: habit_id, date: log_date } = req.params;
+  const userId = 1; // Placeholder user ID
+
+  try {
+    // We join with habits to ensure the user owns the habit they are modifying
+    const result = await db.query(
+      `DELETE FROM habit_logs hl
+       USING habits h
+       WHERE hl.habit_id = h.id
+         AND h.user_id = $1
+         AND hl.habit_id = $2
+         AND hl.log_date = $3`,
+      [userId, habit_id, log_date]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Log entry not found." });
+    }
+
+    console.log(`Log deleted for habit ${habit_id} on ${log_date}`);
+    res.status(204).send(); // 204 No Content is standard for a successful delete
+  } catch (error) {
+    console.error(`Error deleting log for habit ${habit_id}:`, error.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };

@@ -3,14 +3,15 @@ import { Edit3, Save } from "lucide-react";
 
 function JournalEntry({ log, onSaveNote }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [note, setNote] = useState(log.note);
+  const [note, setNote] = useState(log.notes); // <-- Change to log.notes
 
   const handleSave = () => {
-    onSaveNote(log.date, note);
+    onSaveNote(log.log_date, note); // <-- Change to log.log_date
     setIsEditing(false);
   };
 
-  const formattedDate = new Date(log.date).toLocaleDateString("en-US", {
+  const formattedDate = new Date(log.log_date).toLocaleDateString("en-US", {
+    // <-- Change to log.log_date
     weekday: "long",
     year: "numeric",
     month: "long",
