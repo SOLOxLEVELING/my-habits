@@ -8,6 +8,17 @@ const diffDays = (date1, date2) => {
 
 const dayNameToIso = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
 
+// Added this helper function at the top of controllers/habitController.js
+
+const toYYYYMMDD = (date) => {
+  if (!date) return null;
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 // GET /api/habits
 exports.getAllHabits = async (req, res) => {
   const userId = 1;
@@ -227,18 +238,58 @@ exports.addHabitLog = async (req, res) => {
 };
 
 // DELETE /api/habits/:id/logs/:date
+// Replaced existing deleteHabitLog with this final, simplified version
 exports.deleteHabitLog = async (req, res) => {
-  const { id: habit_id, date: log_date } = req.params;
+  const { id: habit_id, date: log_date_to_delete } = req.params;
   const userId = 1;
+
   try {
-    const result = await db.query(
-      `DELETE FROM habit_logs hl USING habits h WHERE hl.habit_id = h.id AND h.user_id = $1 AND hl.habit_id = $2 AND hl.log_date = $3`,
-      [userId, habit_id, log_date]
+    // Step 1: Get the current streak info BEFORE deleting
+    const streakResult = await db.query(
+      "SELECT last_log_date, current_streak FROM streaks WHERE habit_id = $1",
+      [habit_id]
     );
-    if (result.rowCount === 0)
-      return res.status(404).json({ error: "Log entry not found." });
-    // Note: A full implementation would recalculate the streak here.
-    // For now, we just delete the log.
+    if (streakResult.rowCount === 0) {
+      return res.status(404).json({ error: "Streak entry not found." });
+    }
+    const { last_log_date, current_streak } = streakResult.rows[0];
+
+    // Step 2: Delete the log entry
+    const deleteResult = await db.query(
+      `DELETE FROM habit_logs hl USING habits h
+       WHERE hl.habit_id = h.id AND h.user_id = $1 AND hl.habit_id = $2 AND hl.log_date = $3`,
+      [userId, habit_id, log_date_to_delete]
+    );
+
+    if (deleteResult.rowCount === 0) {
+      return res.status(404).json({ error: "Log entry not found to delete." });
+    }
+
+    // Step 3: If the deleted log was the most recent one, recalculate the streak
+    if (toYYYYMMDD(last_log_date) === log_date_to_delete) {
+      const newLastLogResult = await db.query(
+        "SELECT log_date FROM habit_logs WHERE habit_id = $1 ORDER BY log_date DESC LIMIT 1",
+        [habit_id]
+      );
+
+      if (newLastLogResult.rowCount > 0) {
+        // If logs remain, decrement the streak and update the last log date
+        const new_last_log_date = newLastLogResult.rows[0].log_date;
+        const previousStreak = current_streak > 0 ? current_streak - 1 : 0;
+        await db.query(
+          "UPDATE streaks SET current_streak = $1, last_log_date = $2 WHERE habit_id = $3",
+          [previousStreak, new_last_log_date, habit_id]
+        );
+      } else {
+        // If no logs are left, reset the streak completely
+        await db.query(
+          "UPDATE streaks SET current_streak = 0, last_log_date = NULL WHERE habit_id = $1",
+          [habit_id]
+        );
+      }
+    }
+
+    console.log(`Log deleted and streak updated for habit ${habit_id}`);
     res.status(204).send();
   } catch (error) {
     console.error(`Error deleting log for habit ${habit_id}:`, error.message);
