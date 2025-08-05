@@ -42,6 +42,11 @@ export default function App() {
           (log) => log.log_date && log.log_date.startsWith(today)
         );
 
+        // NEW: Create a Set of date strings ('YYYY-MM-DD') for the calendar
+        const loggedDates = new Set(
+          logs.map((log) => log.log_date && log.log_date.split("T")[0])
+        );
+
         let frequency = [];
         if (habit.frequency_type === "daily") {
           frequency = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -54,7 +59,8 @@ export default function App() {
           ...habit,
           frequency,
           logs,
-          completed: completedToday, // <-- Add this calculated property
+          completed: completedToday, // <-- Added this calculated property
+          loggedDates: loggedDates, // Added the new Set to the habit object
         };
       });
 

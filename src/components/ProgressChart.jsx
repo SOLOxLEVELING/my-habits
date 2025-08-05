@@ -13,7 +13,9 @@ function ProgressChart({ logs }) {
     ];
 
     logs.forEach((log) => {
-      const logDate = new Date(log.date);
+      // Changed this line:
+      const logDate = new Date(log.log_date); // Use log.log_date
+      // ...
       if (logDate >= weeksAgo[0] && logDate < weeksAgo[1]) weeklyData[0]++;
       else if (logDate >= weeksAgo[1] && logDate < weeksAgo[2]) weeklyData[1]++;
       else if (logDate >= weeksAgo[2] && logDate < weeksAgo[3]) weeklyData[2]++;

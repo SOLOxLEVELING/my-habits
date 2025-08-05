@@ -46,7 +46,11 @@ function HabitDetailPage({ habit, logs, onBack, onSaveNote }) {
           </div>
         </div>
 
-        <CalendarView logs={logs} habitColor={habit.color} />
+        <CalendarView
+          logs={logs} // You can keep this for other components if needed
+          loggedDates={habit.loggedDates} // Pass the new pre-processed Set
+          habitColor={habit.color}
+        />
         <ProgressChart logs={logs} />
 
         {/* Journal Section */}
@@ -58,7 +62,7 @@ function HabitDetailPage({ habit, logs, onBack, onSaveNote }) {
             {logs.length > 0 ? (
               logs.map((log) => (
                 <JournalEntry
-                  key={log.date}
+                  key={log.id} // <-- CHANGED THIS LINE to use the unique log ID
                   log={log}
                   onSaveNote={(date, note) => onSaveNote(habit.id, date, note)}
                 />
