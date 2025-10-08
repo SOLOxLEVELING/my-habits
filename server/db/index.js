@@ -11,6 +11,8 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 // We export a query function that will be used throughout our app
+// CORRECT CODE ✅
 module.exports = {
   query: (text, params) => pool.query(text, params),
+  connect: () => pool.connect(), // Add this line
 };

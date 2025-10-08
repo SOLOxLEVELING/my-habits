@@ -79,7 +79,7 @@ exports.createHabit = async (req, res) => {
     ? null
     : JSON.stringify({ days: dayNumbers });
 
-  const client = await db.getClient();
+  const client = await db.connect();
   try {
     await client.query("BEGIN");
     const habitQuery = `INSERT INTO habits (user_id, name, description, color, icon, frequency_type, frequency_details, reminder_enabled, reminder_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *;`;
