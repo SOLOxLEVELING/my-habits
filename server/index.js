@@ -11,10 +11,11 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // --- 1. MIDDLEWARE SETUP ---
-// Middleware should always come before your routes.
+// Middleware should always come before routes.
 
-// Enable CORS for your frontend origin.
-app.use(cors({ origin: "http://localhost:5173" }));
+// Enable CORS for frontend origin.
+const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
+app.use(cors({ origin: allowedOrigin }));
 
 // Enable the express.json middleware to parse JSON request bodies.
 app.use(express.json());

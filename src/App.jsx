@@ -1,3 +1,5 @@
+// src/App.jsx
+
 import React, { useState, useEffect } from "react";
 import { Plus, List, Calendar } from "lucide-react";
 import HabitDashboard from "./pages/HabitDashboard";
@@ -9,8 +11,10 @@ import NotificationManager from "./components/NotificationManager";
 // Helper to convert day numbers from DB to day names for the frontend
 const isoToDayName = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+// Define the API URL from environment variables with a local fallback
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5001";
+
 export default function App() {
-  // State is now initialized as empty. It will be filled by the API call.
   const [habits, setHabits] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState(null);
@@ -22,28 +26,16 @@ export default function App() {
   // 1. Fetch all habits from the backend
   const fetchHabits = async () => {
     try {
-      // === CHANGE THIS LINE ===
-      const response = await fetch("http://localhost:5001/api/habits"); // ✅ Use the full backend URL
+      const response = await fetch(`${apiUrl}/api/habits`); // ✅ Use apiUrl
       if (!response.ok) throw new Error("Network response was not ok");
       let data = await response.json();
 
-      // Format the data from the DB to match what the frontend components expect
       const formattedHabits = data.map((habit) => {
-        const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
+        const today = new Date().toISOString().split("T")[0];
         const logs = habit.logs || [];
-
-        // Check if there is a log entry for today
-        // --- THIS IS THE LINE TO CHANGE ---
-
-        // BEFORE:
-        // const completedToday = logs.some((log) => log.log_date === today);
-
-        // AFTER:
         const completedToday = logs.some(
           (log) => log.log_date && log.log_date.startsWith(today)
         );
-
-        // NEW: Create a Set of date strings ('YYYY-MM-DD') for the calendar
         const loggedDates = new Set(
           logs.map((log) => log.log_date && log.log_date.split("T")[0])
         );
@@ -60,8 +52,8 @@ export default function App() {
           ...habit,
           frequency,
           logs,
-          completed: completedToday, // <-- Added this calculated property
-          loggedDates: loggedDates, // Added the new Set to the habit object
+          completed: completedToday,
+          loggedDates: loggedDates,
         };
       });
 
@@ -69,9 +61,8 @@ export default function App() {
     } catch (error) {
       console.error("Error fetching habits:", error);
     }
-  }; // <-- Add this closing brace to properly close fetchHabits function
+  };
 
-  // Run fetchHabits() once when the app loads
   useEffect(() => {
     fetchHabits();
   }, []);
@@ -79,10 +70,9 @@ export default function App() {
   // 2. Save a new habit or update an existing one
   const handleSaveHabit = async (formData) => {
     const isEditing = !!editingHabit;
-    // === CHANGE THIS LINE ===
     const url = isEditing
-      ? `http://localhost:5001/api/habits/${editingHabit.id}` // ✅ Use the full backend URL
-      : "http://localhost:5001/api/habits"; // ✅ Use the full backend URL
+      ? `${apiUrl}/api/habits/${editingHabit.id}` // ✅ Use apiUrl
+      : `${apiUrl}/api/habits`; // ✅ Use apiUrl
     const method = isEditing ? "PUT" : "POST";
 
     try {
@@ -93,8 +83,7 @@ export default function App() {
       });
 
       if (!response.ok) throw new Error("Failed to save the habit.");
-
-      await fetchHabits(); // Re-fetch all data to get the latest state from the DB
+      await fetchHabits();
       handleCloseForm();
     } catch (error) {
       console.error("Error saving habit:", error);
@@ -106,17 +95,11 @@ export default function App() {
     if (!window.confirm("Are you sure you want to delete this habit?")) return;
 
     try {
-      // === CHANGE THIS LINE ===
-      const response = await fetch(
-        `http://localhost:5001/api/habits/${habitId}`,
-        {
-          // ✅ Use the full backend URL
-          method: "DELETE",
-        }
-      );
+      const response = await fetch(`${apiUrl}/api/habits/${habitId}`, {
+        // ✅ Use apiUrl
+        method: "DELETE",
+      });
       if (!response.ok) throw new Error("Failed to delete the habit.");
-
-      // For a faster UI, we can remove the habit from the local state immediately
       setHabits((prev) => prev.filter((h) => h.id !== habitId));
       if (selectedHabitId === habitId) {
         handleDeselectHabit();
@@ -131,29 +114,26 @@ export default function App() {
     const habitToToggle = habits.find((h) => h.id === habitId);
     if (!habitToToggle) return;
 
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const today = new Date().toISOString().split("T")[0];
     const isCompleted = habitToToggle.completed;
 
-    // If the habit is already completed, we want to DELETE the log
     if (isCompleted) {
       try {
         const response = await fetch(
-          `http://localhost:5001/api/habits/${habitId}/logs/${today}`, // Notice the date is now in the URL
+          `${apiUrl}/api/habits/${habitId}/logs/${today}`, // ✅ Use apiUrl
           { method: "DELETE" }
         );
-        // A 404 is okay here, it might just mean the state was out of sync
         if (!response.ok && response.status !== 404) {
           throw new Error("Failed to delete habit log");
         }
-        await fetchHabits(); // Refresh all data
+        await fetchHabits();
       } catch (error) {
         console.error("Error deleting habit log:", error);
       }
     } else {
-      // If the habit is not completed, we want to POST a new log (your existing logic)
       try {
         const response = await fetch(
-          `http://localhost:5001/api/habits/${habitId}/logs`,
+          `${apiUrl}/api/habits/${habitId}/logs`, // ✅ Use apiUrl
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -161,7 +141,7 @@ export default function App() {
           }
         );
         if (!response.ok) throw new Error("Failed to log habit completion");
-        await fetchHabits(); // Refresh all data
+        await fetchHabits();
       } catch (error) {
         console.error("Error creating habit log:", error);
       }
@@ -170,8 +150,6 @@ export default function App() {
 
   // 5. Save a note for a specific log entry
   const handleSaveNote = async (habitId, logDate, newNote) => {
-    // Note: Your backend doesn't have a route for updating notes yet.
-    // This will require a new route like: PUT /api/habits/:habitId/logs/:logDate
     console.log("Note saving not implemented in backend yet.", {
       habitId,
       logDate,
@@ -184,19 +162,16 @@ export default function App() {
     setEditingHabit(habit);
     setIsFormOpen(true);
   };
-
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setEditingHabit(null);
   };
-
   const handleSelectHabit = (id) => setSelectedHabitId(id);
   const handleDeselectHabit = () => setSelectedHabitId(null);
 
   // --- Render Logic ---
   if (selectedHabitId) {
     const selectedHabit = habits.find((h) => h.id === selectedHabitId);
-    // If habit was deleted while being viewed, go back to dashboard
     if (!selectedHabit) {
       handleDeselectHabit();
       return null;
@@ -231,7 +206,6 @@ export default function App() {
             <span>New Habit</span>
           </button>
         </header>
-
         <nav className="flex justify-center mb-8 bg-slate-800/50 p-1 rounded-lg w-fit mx-auto">
           <button
             onClick={() => setActiveView("today")}
@@ -254,7 +228,6 @@ export default function App() {
             <List size={18} /> All Habits
           </button>
         </nav>
-
         <main>
           {activeView === "today" ? (
             <TodayView
@@ -272,7 +245,6 @@ export default function App() {
           )}
         </main>
       </div>
-
       {isFormOpen && (
         <HabitForm
           habit={editingHabit}
