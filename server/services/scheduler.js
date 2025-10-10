@@ -1,109 +1,71 @@
+// scheduler.js
+
 const cron = require("node-cron");
 const db = require("../db");
-const { sendReminderEmail } = require("./emailService");
+// 👇 Imported the new notification service instead of the email service
+const { sendNotification } = require("./notificationService");
 
 const checkReminders = async () => {
-  const nowUTC = new Date();
-  const isoNow = nowUTC.toISOString();
-
-  // Convert to Asia/Kolkata for logging
-  const localTime = new Date(
-    nowUTC.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
-  );
-  const hhmm = localTime.toTimeString().slice(0, 5); // e.g., "18:22"
-
-  console.log(`[${isoNow}] 🕒 Cron job running...`);
-  console.log(
-    `[${isoNow}] 📝 Looking for reminders matching: ${hhmm} (Asia/Kolkata)`
-  );
+  console.log(`[${new Date().toISOString()}] 🕒 Cron job running...`);
 
   try {
-    // 1. Preview upcoming reminders (within next 5 minutes)
-    const upcomingQuery = `
+    // This query finds all habits that have a reminder due for the current minute
+    // in the user's specific timezone.
+    const query = `
       SELECT
+          h.id AS habit_id,
           h.name AS habit_name,
-          u.email AS user_email,
-          h.reminder_time,
-          u.timezone
+          h.user_id
       FROM habits h
       JOIN users u ON h.user_id = u.id
       WHERE h.reminder_enabled = TRUE
+        AND h.reminder_time IS NOT NULL
+        -- Match the time in the user's timezone
+        AND h.reminder_time::time = date_trunc('minute', NOW() AT TIME ZONE u.timezone)::time
+        -- Check if it's a daily habit OR a weekly habit on the correct day
         AND (
             h.frequency_type = 'daily'
             OR h.frequency_details->'days' @> to_jsonb(extract(isodow from NOW() AT TIME ZONE u.timezone))
         )
     `;
 
-    const { rows: allReminders } = await db.query(upcomingQuery);
+    const { rows: reminders } = await db.query(query);
 
-    // Filter and show "coming soon" reminders
-    const upcoming = allReminders.filter((r) => {
-      const userNow = new Date(
-        nowUTC.toLocaleString("en-US", { timeZone: r.timezone })
+    if (reminders.length > 0) {
+      console.log(
+        `[${new Date().toISOString()}] ✅ Found ${
+          reminders.length
+        } reminders to send.`
       );
 
-      const [reminderHour, reminderMin] = r.reminder_time
-        .split(":")
-        .map(Number);
-      const reminderDate = new Date(userNow);
-      reminderDate.setHours(reminderHour, reminderMin, 0, 0);
-
-      const diffMs = reminderDate - userNow;
-      const diffMin = Math.round(diffMs / 60000);
-
-      return diffMin >= 0 && diffMin <= 5;
-    });
-
-    if (upcoming.length > 0) {
-      console.log(`[${isoNow}] 🔔 Upcoming reminders:`);
-      for (const u of upcoming) {
-        console.log(
-          `   - ${u.habit_name} for ${u.email} at ${u.reminder_time} (${u.timezone})`
-        );
+      for (const reminder of reminders) {
+        // 👇 Instead of sending an email, send a browser notification
+        sendNotification(reminder.user_id, {
+          title: "Habit Reminder! ✨",
+          body: `Time for your habit: "${reminder.habit_name}"`,
+          icon: "/favicon.ico", // Optional: you can add a path to an icon
+        });
       }
     } else {
-      console.log(`[${isoNow}] ℹ️ No upcoming reminders in next 5 minutes.`);
-    }
-
-    // 2. Send reminders for current minute
-    const sendNowQuery = `
-      SELECT
-          h.name AS habit_name,
-          u.email AS user_email,
-          u.timezone
-      FROM habits h
-      JOIN users u ON h.user_id = u.id
-      WHERE h.reminder_enabled = TRUE
-        AND h.reminder_time::time = date_trunc('minute', NOW() AT TIME ZONE u.timezone)::time
-        AND (
-            h.frequency_type = 'daily'
-            OR h.frequency_details->'days' @> to_jsonb(extract(isodow from NOW() AT TIME ZONE u.timezone))
-        )
-    `;
-
-    const { rows } = await db.query(sendNowQuery);
-    console.log(`[${isoNow}] ✅ Found ${rows.length} reminders to send.`);
-
-    for (const reminder of rows) {
       console.log(
-        `[${isoNow}] 📧 Sending email to ${reminder.user_email} for "${reminder.habit_name}"`
+        `[${new Date().toISOString()}] ℹ️ No reminders to send for this minute.`
       );
-      await sendReminderEmail(reminder.user_email, reminder.habit_name);
     }
   } catch (error) {
-    console.error(`[${isoNow}] ❌ Error in cron job:`, error.message);
+    console.error(
+      `[${new Date().toISOString()}] ❌ Error in cron job:`,
+      error.message
+    );
   }
 };
 
 const initScheduledJobs = () => {
+  // Runs every minute
   cron.schedule("*/1 * * * *", checkReminders, {
     scheduled: true,
     timezone: "UTC",
   });
-
-  console.log(
-    "Scheduler initialized with REAL email notifications. Cron job will run every minute."
-  );
+  console.log("Scheduler initialized for IN-BROWSER notifications.");
 };
 
 module.exports = { initScheduledJobs };

@@ -4,6 +4,7 @@ import HabitDashboard from "./pages/HabitDashboard";
 import HabitForm from "./components/HabitForm";
 import TodayView from "./pages/TodayView";
 import HabitDetailPage from "./pages/HabitDetailPage";
+import NotificationManager from "./components/NotificationManager";
 
 // Helper to convert day numbers from DB to day names for the frontend
 const isoToDayName = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -217,6 +218,7 @@ export default function App() {
   return (
     <div className="bg-slate-900 min-h-screen text-white font-sans p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
+        <NotificationManager />
         <header className="flex justify-between items-center mb-6">
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-100">
             Habit Tracker
