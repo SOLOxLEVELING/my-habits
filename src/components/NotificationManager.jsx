@@ -2,38 +2,34 @@
 
 import React, { useEffect, useState } from "react";
 
-// The path to the sound file in your public folder
 const NOTIFICATION_SOUND_URL = "/notification.wav";
-
-// Define the API URL from environment variables with a local fallback
+// Corrected: Use import.meta.env for Vite projects
 const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
-function NotificationManager() {
+// The NotificationManager now needs the user object to get the token
+function NotificationManager({ user }) {
   const [permission, setPermission] = useState(Notification.permission);
 
-  // This effect runs once to set up the notification event listener
   useEffect(() => {
-    if (permission !== "granted") {
+    if (permission !== "granted" || !user?.token) {
       return;
     }
 
-    // ✅ Establish a connection using the apiUrl variable
-    const eventSource = new EventSource(`${apiUrl}/api/notifications/stream`);
+    // Pass the token as a query parameter for authentication with EventSource
+    const eventSource = new EventSource(
+      `${apiUrl}/api/notifications/stream?token=${user.token}`
+    );
     console.log("Connecting to notification stream...");
 
     eventSource.onmessage = (event) => {
       const notificationData = JSON.parse(event.data);
-      console.log("Received notification:", notificationData);
-
       new Notification(notificationData.title, {
         body: notificationData.body,
         icon: notificationData.icon || "/favicon.ico",
       });
-
-      const audio = new Audio(NOTIFICATION_SOUND_URL);
-      audio.play().catch((error) => {
-        console.warn("Could not play notification sound:", error);
-      });
+      new Audio(NOTIFICATION_SOUND_URL)
+        .play()
+        .catch((e) => console.warn("Audio play failed", e));
     };
 
     eventSource.onerror = (err) => {
@@ -45,30 +41,33 @@ function NotificationManager() {
       console.log("Closing notification stream.");
       eventSource.close();
     };
-  }, [permission]);
+  }, [permission, user]); // Re-run if permission or user changes
 
   const requestPermission = async () => {
     const requestedPermission = await Notification.requestPermission();
-
     if (requestedPermission === "granted") {
       try {
+        // Unlock audio on user interaction
         const audio = new Audio(NOTIFICATION_SOUND_URL);
         audio.muted = true;
         await audio.play();
-        console.log("Audio unlocked successfully.");
       } catch (error) {
         console.error("Audio unlock failed:", error);
       }
     }
-
     setPermission(requestedPermission);
   };
 
   if (permission !== "granted") {
     return (
-      <div style={styles.container}>
-        <p>Enable notifications to get habit reminders.</p>
-        <button onClick={requestPermission} style={styles.button}>
+      <div className="p-4 mb-4 text-center bg-slate-800 border border-slate-700 rounded-lg">
+        <p className="text-slate-300">
+          Enable notifications to get habit reminders.
+        </p>
+        <button
+          onClick={requestPermission}
+          className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg"
+        >
           Enable Notifications
         </button>
       </div>
@@ -77,28 +76,5 @@ function NotificationManager() {
 
   return null;
 }
-
-// Basic styling for the permission request UI
-const styles = {
-  container: {
-    padding: "15px",
-    backgroundColor: "rgba(30, 41, 59, 0.8)", // Adjusted for dark theme
-    border: "1px solid #334155",
-    borderRadius: "8px",
-    textAlign: "center",
-    margin: "20px 0",
-    color: "#e2e8f0",
-  },
-  button: {
-    backgroundColor: "#4f46e5", // Indigo color from your app
-    color: "white",
-    border: "none",
-    padding: "10px 20px",
-    borderRadius: "5px",
-    cursor: "pointer",
-    fontSize: "16px",
-    fontWeight: "bold",
-  },
-};
 
 export default NotificationManager;

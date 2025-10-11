@@ -1,18 +1,28 @@
-const { Pool } = require("pg");
-const path = require("path");
-require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+// db.js
 
-// The Pool will use the connection details from our .env file
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
-});
-// We export a query function that will be used throughout our app
-// CORRECT CODE ✅
+const { Pool } = require("pg");
+require("dotenv").config();
+
+// This configuration object will be used by the Pool.
+// It is designed to work both locally and on Fly.io.
+const config = {
+  // It reads the single DATABASE_URL from your .env file locally
+  // and from the secrets you set on Fly.io.
+  connectionString: process.env.DATABASE_URL,
+};
+
+// For production environments (like on Fly.io), we MUST enable SSL.
+// This block adds the necessary SSL configuration when deployed.
+// The NODE_ENV variable is automatically set to "production" by many hosting providers.
+if (process.env.NODE_ENV === "production") {
+  config.ssl = {
+    rejectUnauthorized: false,
+  };
+}
+
+const pool = new Pool(config);
+
 module.exports = {
   query: (text, params) => pool.query(text, params),
-  connect: () => pool.connect(), // Add this line
+  connect: () => pool.connect(),
 };

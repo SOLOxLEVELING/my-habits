@@ -3,20 +3,20 @@ const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 
 // Create a "transporter" object using the Ethereal SMTP credentials
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// const transporter = nodemailer.createTransport({
+//   host: process.env.EMAIL_HOST,
+//   port: process.env.EMAIL_PORT,
+//   secure: false, // true for 465, false for other ports
+//   auth: {
+//     user: process.env.EMAIL_USER,
+//     pass: process.env.EMAIL_PASS,
+//   },
+// });
 
-console.log("Email ENV:", {
-  host: process.env.EMAIL_HOST,
-  user: process.env.EMAIL_USER,
-});
+// console.log("Email ENV:", {
+//   host: process.env.EMAIL_HOST,
+//   user: process.env.EMAIL_USER,
+// });
 
 /**
  * Sends a reminder email.

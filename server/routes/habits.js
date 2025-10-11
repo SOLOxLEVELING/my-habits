@@ -1,30 +1,26 @@
+// routes/habits.js
+
 const express = require("express");
 const router = express.Router();
 const habitController = require("../controllers/habitController");
+const { protect } = require("../middleware/authMiddleware");
 
-// GET /api/habits - Get all habits
-router.get("/", habitController.getAllHabits);
+// This single line protects all habit routes below it.
+router.use(protect);
 
-// GET /api/habits/:id - Get a single habit with its logs
-router.get("/:id", habitController.getHabitById);
+router
+  .route("/")
+  .get(habitController.getAllHabits)
+  .post(habitController.createHabit);
 
-// POST /api/habits - Create a new habit
-router.post("/", habitController.createHabit);
+router
+  .route("/:id")
+  .get(habitController.getHabitById)
+  .put(habitController.updateHabit)
+  .delete(habitController.deleteHabit);
 
-// PUT /api/habits/:id - Update an existing habit
-router.put("/:id", habitController.updateHabit);
-
-// DELETE /api/habits/:id - Delete a habit
-router.delete("/:id", habitController.deleteHabit);
-
-// POST /api/habits/:id/logs - Log a habit completion for a day
 router.post("/:id/logs", habitController.addHabitLog);
-
-// --- ADD THIS NEW ROUTE ---
-// DELETE /api/habits/:id/logs/:date - Remove a log for a specific day
 router.delete("/:id/logs/:date", habitController.deleteHabitLog);
-
-// PUT /api/habits/:habitId/logs - Update a note for a specific log
 router.put("/:habitId/logs", habitController.updateLogNote);
 
 module.exports = router;

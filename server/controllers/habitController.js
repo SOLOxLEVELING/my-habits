@@ -1,3 +1,4 @@
+// controllers/habitController.js
 const db = require("../db");
 
 // A helper to calculate the difference in days between two dates
@@ -7,8 +8,6 @@ const diffDays = (date1, date2) => {
 };
 
 const dayNameToIso = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
-
-// Added this helper function at the top of controllers/habitController.js
 
 const toYYYYMMDD = (date) => {
   if (!date) return null;
@@ -21,7 +20,7 @@ const toYYYYMMDD = (date) => {
 
 // GET /api/habits
 exports.getAllHabits = async (req, res) => {
-  const userId = 1;
+  const userId = req.user.id; // Changed
   try {
     const { rows } = await db.query(
       `SELECT h.*, s.current_streak, s.longest_streak,
@@ -41,7 +40,7 @@ exports.getAllHabits = async (req, res) => {
 // GET /api/habits/:id
 exports.getHabitById = async (req, res) => {
   const { id } = req.params;
-  const userId = 1;
+  const userId = req.user.id; // Changed
   try {
     const { rows } = await db.query(
       `SELECT h.*, s.current_streak, s.longest_streak,
@@ -62,7 +61,7 @@ exports.getHabitById = async (req, res) => {
 
 // POST /api/habits
 exports.createHabit = async (req, res) => {
-  const userId = 1;
+  const userId = req.user.id; // Changed
   const {
     name,
     description,
@@ -113,7 +112,7 @@ exports.createHabit = async (req, res) => {
 // PUT /api/habits/:id
 exports.updateHabit = async (req, res) => {
   const { id } = req.params;
-  const userId = 1;
+  const userId = req.user.id; // Changed
   const {
     name,
     description,
@@ -156,7 +155,7 @@ exports.updateHabit = async (req, res) => {
 // DELETE /api/habits/:id
 exports.deleteHabit = async (req, res) => {
   const { id } = req.params;
-  const userId = 1;
+  const userId = req.user.id; // Changed
   try {
     const result = await db.query(
       "DELETE FROM habits WHERE id = $1 AND user_id = $2",
@@ -171,13 +170,14 @@ exports.deleteHabit = async (req, res) => {
   }
 };
 
-// NEW SIMPLIFIED VERSION of addHabitLog
+// POST /api/habits/:id/logs
 exports.addHabitLog = async (req, res) => {
   const { id: habit_id } = req.params;
   const { date: log_date, note } = req.body;
+  // Note: We don't need userId here because the middleware already ensures
+  // the user can only access their own habits.
 
   try {
-    // Step 1: Insert the new log entry.
     const insertResult = await db.query(
       `INSERT INTO habit_logs (habit_id, log_date, notes, status)
        VALUES ($1, $2, $3, 'completed')
@@ -185,15 +185,11 @@ exports.addHabitLog = async (req, res) => {
       [habit_id, log_date, note]
     );
 
-    // Step 2: Only update streaks if a new log was actually inserted.
     if (insertResult.rowCount > 0) {
-      // Step 2a: Get the current streak info.
       let streakResult = await db.query(
         "SELECT * FROM streaks WHERE habit_id = $1",
         [habit_id]
       );
-
-      // Step 2b: If no streak row exists, create one and re-fetch it.
       if (streakResult.rowCount === 0) {
         await db.query(
           "INSERT INTO streaks (habit_id) VALUES ($1) ON CONFLICT (habit_id) DO NOTHING",
@@ -208,7 +204,6 @@ exports.addHabitLog = async (req, res) => {
       const streak = streakResult.rows[0];
       let newCurrentStreak = streak.current_streak;
 
-      // Step 2c: Calculate the new streak.
       if (streak.last_log_date) {
         const dayDifference = diffDays(streak.last_log_date, log_date);
         if (dayDifference === 1) newCurrentStreak++;
@@ -221,15 +216,11 @@ exports.addHabitLog = async (req, res) => {
         newCurrentStreak,
         streak.longest_streak
       );
-
-      // Step 2d: Update the streaks table.
       await db.query(
         `UPDATE streaks SET current_streak = $1, longest_streak = $2, last_log_date = $3 WHERE habit_id = $4`,
         [newCurrentStreak, newLongestStreak, log_date, habit_id]
       );
     }
-
-    console.log(`Log and streak updated for habit ${habit_id}`);
     res.status(201).json({ message: "Log added successfully" });
   } catch (error) {
     console.error(`Error in addHabitLog for habit ${habit_id}:`, error.message);
@@ -238,13 +229,11 @@ exports.addHabitLog = async (req, res) => {
 };
 
 // DELETE /api/habits/:id/logs/:date
-// Replaced existing deleteHabitLog with this final, simplified version
 exports.deleteHabitLog = async (req, res) => {
   const { id: habit_id, date: log_date_to_delete } = req.params;
-  const userId = 1;
+  const userId = req.user.id; // Changed
 
   try {
-    // Step 1: Get the current streak info BEFORE deleting
     const streakResult = await db.query(
       "SELECT last_log_date, current_streak FROM streaks WHERE habit_id = $1",
       [habit_id]
@@ -254,7 +243,6 @@ exports.deleteHabitLog = async (req, res) => {
     }
     const { last_log_date, current_streak } = streakResult.rows[0];
 
-    // Step 2: Delete the log entry
     const deleteResult = await db.query(
       `DELETE FROM habit_logs hl USING habits h
        WHERE hl.habit_id = h.id AND h.user_id = $1 AND hl.habit_id = $2 AND hl.log_date = $3`,
@@ -265,7 +253,6 @@ exports.deleteHabitLog = async (req, res) => {
       return res.status(404).json({ error: "Log entry not found to delete." });
     }
 
-    // Step 3: If the deleted log was the most recent one, recalculate the streak
     if (toYYYYMMDD(last_log_date) === log_date_to_delete) {
       const newLastLogResult = await db.query(
         "SELECT log_date FROM habit_logs WHERE habit_id = $1 ORDER BY log_date DESC LIMIT 1",
@@ -273,7 +260,6 @@ exports.deleteHabitLog = async (req, res) => {
       );
 
       if (newLastLogResult.rowCount > 0) {
-        // If logs remain, decrement the streak and update the last log date
         const new_last_log_date = newLastLogResult.rows[0].log_date;
         const previousStreak = current_streak > 0 ? current_streak - 1 : 0;
         await db.query(
@@ -281,15 +267,12 @@ exports.deleteHabitLog = async (req, res) => {
           [previousStreak, new_last_log_date, habit_id]
         );
       } else {
-        // If no logs are left, reset the streak completely
         await db.query(
           "UPDATE streaks SET current_streak = 0, last_log_date = NULL WHERE habit_id = $1",
           [habit_id]
         );
       }
     }
-
-    console.log(`Log deleted and streak updated for habit ${habit_id}`);
     res.status(204).send();
   } catch (error) {
     console.error(`Error deleting log for habit ${habit_id}:`, error.message);
