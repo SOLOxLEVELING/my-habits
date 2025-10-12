@@ -1,16 +1,13 @@
-// scheduler.js
+// services/scheduler.js
 
 const cron = require("node-cron");
 const db = require("../db");
-// 👇 Imported the new notification service instead of the email service
 const { sendNotification } = require("./notificationService");
 
 const checkReminders = async () => {
   console.log(`[${new Date().toISOString()}] 🕒 Cron job running...`);
 
   try {
-    // This query finds all habits that have a reminder due for the current minute
-    // in the user's specific timezone.
     const query = `
       SELECT
           h.id AS habit_id,
@@ -20,9 +17,7 @@ const checkReminders = async () => {
       JOIN users u ON h.user_id = u.id
       WHERE h.reminder_enabled = TRUE
         AND h.reminder_time IS NOT NULL
-        -- Match the time in the user's timezone
         AND h.reminder_time::time = date_trunc('minute', NOW() AT TIME ZONE u.timezone)::time
-        -- Check if it's a daily habit OR a weekly habit on the correct day
         AND (
             h.frequency_type = 'daily'
             OR h.frequency_details->'days' @> to_jsonb(extract(isodow from NOW() AT TIME ZONE u.timezone))
@@ -39,11 +34,11 @@ const checkReminders = async () => {
       );
 
       for (const reminder of reminders) {
-        // 👇 Instead of sending an email, send a browser notification
-        sendNotification(reminder.user_id, {
+        // We now specify the event type is 'habit_reminder'
+        sendNotification(reminder.user_id, "habit_reminder", {
           title: "Habit Reminder! ✨",
           body: `Time for your habit: "${reminder.habit_name}"`,
-          icon: "/favicon.ico", // Optional: you can add a path to an icon
+          icon: "/favicon.ico",
         });
       }
     } else {
@@ -60,7 +55,6 @@ const checkReminders = async () => {
 };
 
 const initScheduledJobs = () => {
-  // Runs every minute
   cron.schedule("*/1 * * * *", checkReminders, {
     scheduled: true,
     timezone: "UTC",

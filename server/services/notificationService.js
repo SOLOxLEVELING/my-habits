@@ -5,16 +5,20 @@ const db = require("../db");
 
 const clients = {};
 
-const sendNotification = (userId, data) => {
+// We've added an 'eventType' parameter here
+const sendNotification = (userId, eventType, data) => {
   const client = clients[userId];
   if (client && client.res) {
+    // This 'event:' line is part of the SSE standard to label messages
+    client.res.write(`event: ${eventType}\n`);
     client.res.write(`data: ${JSON.stringify(data)}\n\n`);
+    console.log(`🚀 Sent '${eventType}' to user ${userId}`);
     return true;
   }
+  console.log(`ℹ️ User ${userId} not connected. Cannot send notification.`);
   return false;
 };
 
-// Updated to authenticate via token in query parameter
 const sseMiddleware = async (req, res) => {
   const { token } = req.query;
   if (!token) {
@@ -39,7 +43,8 @@ const sseMiddleware = async (req, res) => {
     clients[userId] = { res };
     console.log(`✅ User ${userId} connected for notifications.`);
 
-    sendNotification(userId, {
+    // Send a 'connection_success' event, NOT a generic notification
+    sendNotification(userId, "connection_success", {
       title: "Notifications Enabled!",
       body: "You will now receive habit reminders here.",
     });

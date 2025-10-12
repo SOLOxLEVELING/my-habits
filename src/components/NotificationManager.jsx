@@ -3,10 +3,8 @@
 import React, { useEffect, useState } from "react";
 
 const NOTIFICATION_SOUND_URL = "/notification.wav";
-// Corrected: Use import.meta.env for Vite projects
 const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
-// The NotificationManager now needs the user object to get the token
 function NotificationManager({ user }) {
   const [permission, setPermission] = useState(Notification.permission);
 
@@ -15,22 +13,33 @@ function NotificationManager({ user }) {
       return;
     }
 
-    // Pass the token as a query parameter for authentication with EventSource
     const eventSource = new EventSource(
       `${apiUrl}/api/notifications/stream?token=${user.token}`
     );
     console.log("Connecting to notification stream...");
 
-    eventSource.onmessage = (event) => {
+    // IMPORTANT: We now listen for a SPECIFIC event type
+    eventSource.addEventListener("habit_reminder", (event) => {
       const notificationData = JSON.parse(event.data);
+      console.log("Received habit reminder:", notificationData);
+
+      // This code will ONLY run for real reminders
       new Notification(notificationData.title, {
         body: notificationData.body,
         icon: notificationData.icon || "/favicon.ico",
       });
+
       new Audio(NOTIFICATION_SOUND_URL)
         .play()
         .catch((e) => console.warn("Audio play failed", e));
-    };
+    });
+
+    // You can optionally listen for the success message for debugging
+    eventSource.addEventListener("connection_success", (event) => {
+      const data = JSON.parse(event.data);
+      console.log("Successfully connected to notifications:", data.title);
+      // We DON'T show a pop-up or play a sound here
+    });
 
     eventSource.onerror = (err) => {
       console.error("EventSource failed:", err);
@@ -41,13 +50,13 @@ function NotificationManager({ user }) {
       console.log("Closing notification stream.");
       eventSource.close();
     };
-  }, [permission, user]); // Re-run if permission or user changes
+  }, [permission, user]);
 
   const requestPermission = async () => {
+    // ... (rest of this function is unchanged)
     const requestedPermission = await Notification.requestPermission();
     if (requestedPermission === "granted") {
       try {
-        // Unlock audio on user interaction
         const audio = new Audio(NOTIFICATION_SOUND_URL);
         audio.muted = true;
         await audio.play();
@@ -59,6 +68,7 @@ function NotificationManager({ user }) {
   };
 
   if (permission !== "granted") {
+    // ... (rest of the component is unchanged)
     return (
       <div className="p-4 mb-4 text-center bg-slate-800 border border-slate-700 rounded-lg">
         <p className="text-slate-300">
