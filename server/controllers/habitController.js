@@ -281,6 +281,42 @@ exports.deleteHabitLog = async (req, res) => {
 };
 
 // PUT /api/habits/:habitId/logs
+// controllers/habitController.js
+
+// ... (keep all your other functions: getAllHabits, createHabit, etc.) ...
+
+// --- REPLACE THE OLD updateLogNote FUNCTION WITH THIS ---
+// PUT /api/habits/:habitId/logs
 exports.updateLogNote = async (req, res) => {
-  res.status(501).json({ message: "Not implemented yet" });
+  const { habitId } = req.params;
+  const { log_date, note } = req.body;
+  const userId = req.user.id; // Get user ID from our auth middleware
+
+  if (!log_date) {
+    return res.status(400).json({ error: "A date for the log is required." });
+  }
+
+  try {
+    const result = await db.query(
+      `UPDATE habit_logs hl
+       SET notes = $1
+       FROM habits h
+       WHERE hl.habit_id = h.id
+         AND hl.habit_id = $2
+         AND hl.log_date = $3
+         AND h.user_id = $4`,
+      [note, habitId, log_date, userId]
+    );
+
+    if (result.rowCount === 0) {
+      // This can happen if the log for that day doesn't exist yet,
+      // or if the habit doesn't belong to the user.
+      return res.status(404).json({ error: "Log entry not found for that date." });
+    }
+
+    res.status(200).json({ message: "Note updated successfully." });
+  } catch (error) {
+    console.error(`Error updating note for habit ${habitId}:`, error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };

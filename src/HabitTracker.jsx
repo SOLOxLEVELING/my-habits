@@ -93,6 +93,29 @@ export default function HabitTracker({ user, onLogout }) {
     }
   };
 
+   // --- ADDED THIS NEW FUNCTION TO HANDLE SAVING NOTES ---
+  const handleSaveNote = async (habitId, logDate, newNote) => {
+    try {
+      const response = await fetch(`${apiUrl}/api/habits/${habitId}/logs`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          log_date: logDate,
+          note: newNote,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save the note.");
+      }
+
+      // Refresh all habit data to show the updated note
+      await fetchHabits();
+    } catch (error) {
+      console.error("Error saving note:", error);
+    }
+  };
+
   const handleDeleteHabit = async (habitId) => {
     if (!window.confirm("Are you sure?")) return;
     try {
@@ -173,6 +196,7 @@ export default function HabitTracker({ user, onLogout }) {
             habit={selectedHabit}
             logs={selectedHabit.logs}
             onBack={handleDeselectHabit}
+            onSaveNote={handleSaveNote} // <-- THE NEW PROP
           />
         </div>
       </div>
