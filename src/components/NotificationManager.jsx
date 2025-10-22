@@ -9,6 +9,7 @@ function NotificationManager({ user }) {
   const [permission, setPermission] = useState(Notification.permission);
 
   useEffect(() => {
+    // ... (logic unchanged)
     if (permission !== "granted" || !user?.token) {
       return;
     }
@@ -18,12 +19,10 @@ function NotificationManager({ user }) {
     );
     console.log("Connecting to notification stream...");
 
-    // IMPORTANT: We now listen for a SPECIFIC event type
     eventSource.addEventListener("habit_reminder", (event) => {
       const notificationData = JSON.parse(event.data);
       console.log("Received habit reminder:", notificationData);
 
-      // This code will ONLY run for real reminders
       new Notification(notificationData.title, {
         body: notificationData.body,
         icon: notificationData.icon || "/favicon.ico",
@@ -34,11 +33,9 @@ function NotificationManager({ user }) {
         .catch((e) => console.warn("Audio play failed", e));
     });
 
-    // You can optionally listen for the success message for debugging
     eventSource.addEventListener("connection_success", (event) => {
       const data = JSON.parse(event.data);
       console.log("Successfully connected to notifications:", data.title);
-      // We DON'T show a pop-up or play a sound here
     });
 
     eventSource.onerror = (err) => {
@@ -53,7 +50,7 @@ function NotificationManager({ user }) {
   }, [permission, user]);
 
   const requestPermission = async () => {
-    // ... (rest of this function is unchanged)
+    // ... (logic unchanged)
     const requestedPermission = await Notification.requestPermission();
     if (requestedPermission === "granted") {
       try {
@@ -68,15 +65,16 @@ function NotificationManager({ user }) {
   };
 
   if (permission !== "granted") {
-    // ... (rest of the component is unchanged)
+    // Redesigned permission banner
     return (
-      <div className="p-4 mb-4 text-center bg-slate-800 border border-slate-700 rounded-lg">
+      <div className="p-4 mb-6 text-center bg-slate-900 border border-slate-800 rounded-xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
         <p className="text-slate-300">
-          Enable notifications to get habit reminders.
+          Enable notifications to get smart habit reminders.
         </p>
         <button
           onClick={requestPermission}
-          className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg"
+          // Updated button style
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
         >
           Enable Notifications
         </button>

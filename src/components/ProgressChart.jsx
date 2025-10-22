@@ -1,8 +1,11 @@
+// src/components/ProgressChart.jsx
+
 import React from "react";
 
 function ProgressChart({ logs }) {
   // Simple logic to get completions for the last 4 weeks
   const getWeeklyCompletions = () => {
+    // ... (logic unchanged)
     const today = new Date();
     const weeklyData = [0, 0, 0, 0];
     const weeksAgo = [
@@ -13,9 +16,7 @@ function ProgressChart({ logs }) {
     ];
 
     logs.forEach((log) => {
-      // Changed this line:
-      const logDate = new Date(log.log_date); // Use log.log_date
-      // ...
+      const logDate = new Date(log.log_date);
       if (logDate >= weeksAgo[0] && logDate < weeksAgo[1]) weeklyData[0]++;
       else if (logDate >= weeksAgo[1] && logDate < weeksAgo[2]) weeklyData[1]++;
       else if (logDate >= weeksAgo[2] && logDate < weeksAgo[3]) weeklyData[2]++;
@@ -29,14 +30,14 @@ function ProgressChart({ logs }) {
   const labels = ["3w ago", "2w ago", "Last wk", "This wk"];
 
   return (
+    // Note: The h3 title is now in the parent HabitDetailPage.jsx
     <div>
-      <h3 className="text-lg font-bold text-slate-200 mb-3">Weekly Progress</h3>
-      <div className="flex justify-around items-end h-40 bg-slate-800/50 p-4 rounded-lg">
+      <div className="flex justify-around items-end h-40 bg-slate-800 p-4 rounded-lg">
         {weeklyCompletions.map((count, index) => (
           <div key={index} className="flex flex-col items-center w-1/4">
             <div className="text-sm font-bold text-slate-100">{count}</div>
             <div
-              className="w-8 bg-indigo-500 rounded-t-sm transition-all duration-300"
+              className="w-8 bg-blue-600 rounded-t-sm transition-all duration-300" // Changed color
               style={{ height: `${(count / maxCompletions) * 100}%` }}
               title={`${count} completions`}
             ></div>

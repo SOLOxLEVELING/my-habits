@@ -1,32 +1,34 @@
+// src/components/JournalEntry.jsx
+
 import React, { useState } from "react";
 import { Edit3, Save } from "lucide-react";
 
 function JournalEntry({ log, onSaveNote }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [note, setNote] = useState(log.notes); // <-- Change to log.notes
+  const [note, setNote] = useState(log.notes);
 
   const handleSave = () => {
-    onSaveNote(log.log_date, note); // <-- Change to log.log_date
+    onSaveNote(log.log_date, note);
     setIsEditing(false);
   };
 
   const formattedDate = new Date(log.log_date).toLocaleDateString("en-US", {
-    // <-- Change to log.log_date
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
-    timeZone: "UTC", // Ensure date is not shifted
+    timeZone: "UTC",
   });
 
   return (
-    <div className="bg-slate-700/50 p-4 rounded-lg">
+    // Redesigned as a sub-item, not a card
+    <div className="bg-slate-800 p-4 rounded-lg">
       <div className="flex justify-between items-center mb-2">
-        <p className="font-semibold text-slate-300">{formattedDate}</p>
+        <p className="font-semibold text-slate-200">{formattedDate}</p>
         {!isEditing && (
           <button
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 text-slate-400 hover:text-white"
+            className="flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors" // Changed hover color
           >
             <Edit3 size={16} />
             <span>Edit</span>
@@ -39,19 +41,21 @@ function JournalEntry({ log, onSaveNote }) {
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            // Changed styles for textarea
+            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-100"
             rows="3"
           ></textarea>
           <button
             onClick={handleSave}
-            className="flex self-end items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1 px-3 rounded-lg"
+            // Changed button color
+            className="flex self-end items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded-lg transition-colors"
           >
             <Save size={16} />
             <span>Save</span>
           </button>
         </div>
       ) : (
-        <p className="text-slate-200 whitespace-pre-wrap">
+        <p className="text-slate-300 whitespace-pre-wrap">
           {note || (
             <span className="text-slate-500">No note for this day.</span>
           )}

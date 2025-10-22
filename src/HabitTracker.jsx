@@ -1,7 +1,7 @@
 // src/HabitTracker.jsx
 
 import React, { useState, useEffect } from "react";
-import { Plus, List, Calendar } from "lucide-react";
+import { Plus, List, Calendar, Goal, LogOut } from "lucide-react"; // Added Goal, LogOut
 import HabitDashboard from "./pages/HabitDashboard";
 import HabitForm from "./components/HabitForm";
 import TodayView from "./pages/TodayView";
@@ -9,10 +9,8 @@ import HabitDetailPage from "./pages/HabitDetailPage";
 import NotificationManager from "./components/NotificationManager";
 
 const isoToDayName = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-// Corrected: Use import.meta.env for Vite projects
 const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
-// This component contains all the original logic from your App.jsx
 export default function HabitTracker({ user, onLogout }) {
   const [habits, setHabits] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -20,7 +18,6 @@ export default function HabitTracker({ user, onLogout }) {
   const [activeView, setActiveView] = useState("today");
   const [selectedHabitId, setSelectedHabitId] = useState(null);
 
-  // Helper to create authenticated fetch options
   const getAuthHeaders = () => ({
     "Content-Type": "application/json",
     Authorization: `Bearer ${user.token}`,
@@ -73,6 +70,7 @@ export default function HabitTracker({ user, onLogout }) {
   }, [user]);
 
   const handleSaveHabit = async (formData) => {
+    // ... (logic unchanged)
     const isEditing = !!editingHabit;
     const url = isEditing
       ? `${apiUrl}/api/habits/${editingHabit.id}`
@@ -93,8 +91,8 @@ export default function HabitTracker({ user, onLogout }) {
     }
   };
 
-   // --- ADDED THIS NEW FUNCTION TO HANDLE SAVING NOTES ---
   const handleSaveNote = async (habitId, logDate, newNote) => {
+    // ... (logic unchanged)
     try {
       const response = await fetch(`${apiUrl}/api/habits/${habitId}/logs`, {
         method: "PUT",
@@ -108,8 +106,6 @@ export default function HabitTracker({ user, onLogout }) {
       if (!response.ok) {
         throw new Error("Failed to save the note.");
       }
-
-      // Refresh all habit data to show the updated note
       await fetchHabits();
     } catch (error) {
       console.error("Error saving note:", error);
@@ -117,6 +113,7 @@ export default function HabitTracker({ user, onLogout }) {
   };
 
   const handleDeleteHabit = async (habitId) => {
+    // ... (logic unchanged)
     if (!window.confirm("Are you sure?")) return;
     try {
       const response = await fetch(`${apiUrl}/api/habits/${habitId}`, {
@@ -134,6 +131,7 @@ export default function HabitTracker({ user, onLogout }) {
   };
 
   const handleToggleComplete = async (habitId) => {
+    // ... (logic unchanged)
     const habitToToggle = habits.find((h) => h.id === habitId);
     if (!habitToToggle) return;
 
@@ -189,59 +187,67 @@ export default function HabitTracker({ user, onLogout }) {
       handleDeselectHabit();
       return null;
     }
+    // Changed background to darker slate-950
     return (
-      <div className="bg-slate-900 min-h-screen text-white font-sans p-4 sm:p-6 lg:p-8">
+      <div className="bg-slate-950 min-h-screen text-white font-sans p-4 sm:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto">
           <HabitDetailPage
             habit={selectedHabit}
             logs={selectedHabit.logs}
             onBack={handleDeselectHabit}
-            onSaveNote={handleSaveNote} // <-- THE NEW PROP
+            onSaveNote={handleSaveNote}
           />
         </div>
       </div>
     );
   }
 
+  // Changed background to darker slate-950 and container to max-w-5xl
   return (
-    <div className="bg-slate-900 min-h-screen text-white font-sans p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto relative">
+    <div className="bg-slate-950 min-h-screen text-white font-sans p-4 sm:p-6 lg:p-8">
+      <div className="max-w-5xl mx-auto relative">
         <NotificationManager user={user} />
-        <header className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-100">
-            Habit Tracker
-          </h1>
-          <div>
-            <span className="text-slate-400 mr-4">
+        <header className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-600/20 rounded-lg">
+              <Goal className="w-6 h-6 text-blue-400" />
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-100">
+              Habit Tracker
+            </h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-slate-400 text-sm hidden sm:block">
               Welcome, {user.username}!
             </span>
             <button
               onClick={onLogout}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition-transform transform hover:scale-105"
+              className="flex items-center gap-2 text-slate-400 hover:text-slate-100 bg-slate-800 hover:bg-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors"
             >
-              Logout
+              <LogOut size={16} />
+              <span>Logout</span>
             </button>
           </div>
         </header>
 
-        <div className="flex justify-between items-center mb-8">
-          <nav className="flex bg-slate-800/50 p-1 rounded-lg">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+          <nav className="flex bg-slate-800 p-1.5 rounded-lg">
             <button
               onClick={() => setActiveView("today")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors text-sm ${
                 activeView === "today"
-                  ? "bg-indigo-600 text-white"
-                  : "text-slate-400 hover:bg-slate-700"
+                  ? "bg-blue-600 text-white"
+                  : "text-slate-400 hover:bg-slate-700/50"
               }`}
             >
               <Calendar size={18} /> Today
             </button>
             <button
               onClick={() => setActiveView("all")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors text-sm ${
                 activeView === "all"
-                  ? "bg-indigo-600 text-white"
-                  : "text-slate-400 hover:bg-slate-700"
+                  ? "bg-blue-600 text-white"
+                  : "text-slate-400 hover:bg-slate-700/50"
               }`}
             >
               <List size={18} /> All Habits
@@ -249,7 +255,7 @@ export default function HabitTracker({ user, onLogout }) {
           </nav>
           <button
             onClick={() => handleOpenForm()}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition-transform transform hover:scale-105"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-lg transition-transform transform hover:scale-105"
           >
             <Plus size={20} />
             <span>New Habit</span>

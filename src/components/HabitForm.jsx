@@ -1,3 +1,5 @@
+// src/components/HabitForm.jsx
+
 import React, { useState } from "react";
 
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -31,7 +33,6 @@ function HabitForm({ habit, onSave, onClose }) {
     color: habit?.color || colorOptions[0],
     icon: habit?.icon || iconOptions[0],
     frequency: habit?.frequency || [],
-    // Add reminder fields to the form's state
     reminder_enabled: habit?.reminder_enabled || false,
     reminder_time: habit?.reminder_time || "09:00",
   });
@@ -61,12 +62,14 @@ function HabitForm({ habit, onSave, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4">
-      <div className="bg-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-md m-4">
+    // Updated backdrop
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4 animate-fade-in">
+      {/* Redesigned modal card */}
+      <div className="bg-slate-900 rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-md m-4 border border-slate-700">
         <h2 className="text-2xl font-bold mb-6 text-slate-100">
           {habit ? "Edit Habit" : "Create New Habit"}
         </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label
               htmlFor="name"
@@ -81,7 +84,8 @@ function HabitForm({ habit, onSave, onClose }) {
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              // Updated input style
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-100"
             />
           </div>
           <div>
@@ -89,7 +93,7 @@ function HabitForm({ habit, onSave, onClose }) {
               htmlFor="description"
               className="block text-sm font-medium text-slate-400 mb-1"
             >
-              Description
+              Description (Optional)
             </label>
             <input
               type="text"
@@ -97,7 +101,8 @@ function HabitForm({ habit, onSave, onClose }) {
               id="description"
               value={formData.description}
               onChange={handleChange}
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              // Updated input style
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-100"
             />
           </div>
 
@@ -118,10 +123,16 @@ function HabitForm({ habit, onSave, onClose }) {
                   id="icon"
                   value={formData.icon}
                   onChange={handleChange}
-                  className="w-full appearance-none bg-slate-700 border border-slate-600 rounded-lg pl-3 pr-8 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  // Updated select style
+                  className="w-full appearance-none bg-slate-800 border border-slate-700 rounded-lg pl-3 pr-8 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-lg"
+                  style={{ fontSize: "1.25rem" }} // Ensure emoji is large
                 >
                   {iconOptions.map((icon) => (
-                    <option key={icon} value={icon}>
+                    <option
+                      key={icon}
+                      value={icon}
+                      style={{ fontSize: "1.25rem" }}
+                    >
                       {icon}
                     </option>
                   ))}
@@ -144,7 +155,7 @@ function HabitForm({ habit, onSave, onClose }) {
                       }
                       className={`w-full h-8 rounded-md ${color} ${
                         formData.color === color
-                          ? "ring-2 ring-offset-2 ring-offset-slate-800 ring-white"
+                          ? "ring-2 ring-offset-2 ring-offset-slate-900 ring-white" // Updated ring offset
                           : ""
                       }`}
                     ></button>
@@ -164,10 +175,11 @@ function HabitForm({ habit, onSave, onClose }) {
                   type="button"
                   key={day}
                   onClick={() => handleFrequencyChange(day)}
+                  // Updated button styles
                   className={`px-3 py-1.5 text-sm font-semibold rounded-full transition-colors ${
                     formData.frequency.includes(day)
-                      ? "bg-indigo-600 text-white"
-                      : "bg-slate-700 hover:bg-slate-600 text-slate-300"
+                      ? "bg-blue-600 text-white" // Changed to blue
+                      : "bg-slate-800 hover:bg-slate-700 text-slate-300"
                   }`}
                 >
                   {day}
@@ -176,16 +188,16 @@ function HabitForm({ habit, onSave, onClose }) {
             </div>
           </div>
 
-          {/* New Reminder Section */}
+          {/* New Reminder Section - Redesigned card-in-card */}
           <div>
             <label className="block text-sm font-medium text-slate-400 mb-2">
               Smart Reminders
             </label>
-            <div className="bg-slate-700/50 p-4 rounded-lg">
+            <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
               <div className="flex items-center justify-between">
                 <label
                   htmlFor="reminder_enabled"
-                  className="font-semibold text-slate-200"
+                  className="font-semibold text-slate-100"
                 >
                   Enable Notifications
                 </label>
@@ -195,7 +207,8 @@ function HabitForm({ habit, onSave, onClose }) {
                   id="reminder_enabled"
                   checked={formData.reminder_enabled}
                   onChange={handleChange}
-                  className="w-5 h-5 rounded text-indigo-500 bg-slate-600 border-slate-500 focus:ring-indigo-500"
+                  // Updated checkbox style
+                  className="w-5 h-5 rounded text-blue-500 bg-slate-700 border-slate-600 focus:ring-blue-500"
                 />
               </div>
               {formData.reminder_enabled && (
@@ -212,7 +225,8 @@ function HabitForm({ habit, onSave, onClose }) {
                     id="reminder_time"
                     value={formData.reminder_time}
                     onChange={handleChange}
-                    className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    // Updated input style
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-100"
                   />
                 </div>
               )}
@@ -223,13 +237,15 @@ function HabitForm({ habit, onSave, onClose }) {
             <button
               type="button"
               onClick={onClose}
-              className="py-2 px-4 bg-slate-600 hover:bg-slate-500 rounded-lg font-semibold transition-colors"
+              // Updated button style
+              className="py-2 px-4 bg-slate-700 hover:bg-slate-600 rounded-lg font-semibold transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="py-2 px-4 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-semibold transition-colors"
+              // Updated button style
+              className="py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors"
             >
               Save Habit
             </button>

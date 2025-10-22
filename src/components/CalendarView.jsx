@@ -1,3 +1,5 @@
+// src/components/CalendarView.jsx
+
 import React from "react";
 
 // This color map ensures Tailwind CSS includes all these classes in the final build.
@@ -10,6 +12,8 @@ const colorMap = {
   "bg-yellow-500": "bg-yellow-400",
   "bg-indigo-500": "bg-indigo-400",
   "bg-pink-500": "bg-pink-400",
+  // Add our new blue accent just in case
+  "bg-blue-600": "bg-blue-500",
 };
 
 // A timezone-safe helper function to get a 'YYYY-MM-DD' string from a Date object
@@ -34,24 +38,22 @@ function CalendarView({ loggedDates, habitColor }) {
   const lightColorClass = colorMap[habitColor] || "bg-slate-400"; // Fallback color
 
   return (
-    <div>
-      <h3 className="text-lg font-bold text-slate-200 mb-3">Consistency</h3>
-      <div className="grid grid-cols-[repeat(26,minmax(0,1fr))] grid-rows-7 gap-1">
-        {days.map((day, index) => {
-          const logDate = toYYYYMMDD(day);
-          const hasLog = loggedDates && loggedDates.has(logDate);
+    // Note: The h3 title is now in the parent HabitDetailPage.jsx
+    <div className="grid grid-cols-[repeat(26,minmax(0,1fr))] grid-rows-7 gap-1">
+      {days.map((day, index) => {
+        const logDate = toYYYYMMDD(day);
+        const hasLog = loggedDates && loggedDates.has(logDate);
 
-          return (
-            <div
-              key={index}
-              className={`w-full aspect-square rounded-[3px] transition-colors ${
-                hasLog ? lightColorClass : "bg-slate-700/50"
-              }`}
-              title={logDate}
-            ></div>
-          );
-        })}
-      </div>
+        return (
+          <div
+            key={index}
+            className={`w-full aspect-square rounded-[3px] transition-colors ${
+              hasLog ? lightColorClass : "bg-slate-800" // Changed empty color
+            }`}
+            title={logDate}
+          ></div>
+        );
+      })}
     </div>
   );
 }
