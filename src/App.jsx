@@ -4,12 +4,19 @@ import React, { useState, useEffect } from "react";
 import HabitTracker from "./HabitTracker";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import Clarity from "@microsoft/clarity";
 
 export default function App() {
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
   });
+
+  useEffect(() => {
+    if (import.meta.env.MODE === "production") {
+      Clarity.init(import.meta.env.VITE_CLARITY_ID);
+    }
+  }, []);
 
   const [route, setRoute] = useState(user ? "/" : "/login");
 
