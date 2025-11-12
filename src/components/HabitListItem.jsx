@@ -23,14 +23,16 @@ function HabitListItem({
       onClick={() => onSelect(habit.id)}
     >
       {/* Left: Icon and Main Info */}
-      <div className="flex items-center gap-4 w-full sm:w-auto">
+      <div className="flex items-center gap-4 w-full sm:w-auto flex-shrink min-w-0">
         <div
           className={`w-12 h-12 ${habit.color} rounded-lg flex items-center justify-center text-2xl flex-shrink-0`}
         >
           {habit.icon}
         </div>
-        <div className="flex-grow">
-          <h3 className="font-bold text-lg text-slate-50">{habit.name}</h3>
+        <div className="flex-grow min-w-0">
+          <h3 className="font-bold text-lg text-slate-50 truncate" title={habit.name}>
+            {habit.name}
+          </h3>
           <div className="flex items-center gap-3 mt-1">
             {habit.current_streak > 0 && (
               <div className="flex items-center gap-1 bg-orange-900/50 text-orange-400 px-2 py-0.5 rounded-full text-xs font-semibold">
