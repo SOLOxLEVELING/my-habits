@@ -1,5 +1,8 @@
+// src/pages/HabitDashboard.jsx
+
 import React from "react";
 import HabitListItem from "../components/HabitListItem";
+import { motion } from "framer-motion";
 
 function HabitDashboard({
   habits,
@@ -20,7 +23,12 @@ function HabitDashboard({
   }
 
   return (
-    <div className="space-y-4">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+    >
       {habits.map((habit) => (
         <HabitListItem
           key={habit.id}
@@ -31,7 +39,7 @@ function HabitDashboard({
           onSelect={onSelect}
         />
       ))}
-    </div>
+    </motion.div>
   );
 }
 
