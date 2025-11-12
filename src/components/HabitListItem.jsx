@@ -19,11 +19,11 @@ function HabitListItem({
 
   return (
     <div
-      className="relative p-4 rounded-xl shadow-sm transition-all duration-300 flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-slate-900 border border-slate-800 hover:bg-slate-800/60 cursor-pointer"
+      className="relative p-4 rounded-xl shadow-sm transition-all duration-300 flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-slate-900 border border-slate-800 hover:bg-slate-800/60 cursor-pointer overflow-hidden"
       onClick={() => onSelect(habit.id)}
     >
-      {/* Left: Icon and Main Info */}
-      <div className="flex items-center gap-4 w-full sm:w-auto flex-shrink min-w-0">
+      {/* Left: Icon and Main Info - This will grow */}
+      <div className="flex items-center gap-4 w-full sm:flex-1 min-w-0">
         <div
           className={`w-12 h-12 ${habit.color} rounded-lg flex items-center justify-center text-2xl flex-shrink-0`}
         >
@@ -52,8 +52,8 @@ function HabitListItem({
         </div>
       </div>
 
-      {/* Middle: Frequency */}
-      <div className="flex-grow flex items-center justify-center">
+      {/* Middle: Frequency - This will not grow */}
+      <div className="sm:flex-none flex items-center justify-center">
         <div className="flex gap-1.5">
           {daysOfWeek.map((day) => (
             <span
@@ -70,8 +70,8 @@ function HabitListItem({
         </div>
       </div>
 
-      {/* Right: Actions */}
-      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 self-end sm:self-center">
+      {/* Right: Actions - This will not grow */}
+      <div className="flex items-center gap-1 sm:gap-2 sm:flex-none self-end sm:self-center">
         <button
           onClick={(e) => handleButtonClick(e, () => onToggleComplete(habit.id))}
           className={`p-2 rounded-full transition-colors ${
