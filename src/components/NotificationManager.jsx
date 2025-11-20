@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 
 // Use this short beep sound:
-const BEEP_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"; 
+const BEEP_URL = "/notification.wav"
 
 function NotificationManager({ user }) {
   const [permission, setPermission] = useState(Notification.permission);
