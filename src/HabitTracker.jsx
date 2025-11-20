@@ -56,9 +56,10 @@ export default function HabitTracker({ user, onLogout }) {
           logs,
           completed: completedToday,
           loggedDates,
-          category: localData.category || "Health", // Default if missing
-          reminder_enabled: localData.reminder_enabled || false,
-          reminder_time: localData.reminder_time || "09:00",
+          category: localData.category || "Health", // Category is local-only
+          // Reminders: Use API data if available, otherwise fallback to local (migration path)
+          reminder_enabled: habit.reminder_enabled !== undefined ? habit.reminder_enabled : (localData.reminder_enabled || false),
+          reminder_time: habit.reminder_time || localData.reminder_time || "09:00",
         };
       });
       setHabits(formattedHabits);
@@ -86,23 +87,32 @@ export default function HabitTracker({ user, onLogout }) {
         color: formData.color,
         icon: formData.icon,
         frequency_type: formData.frequency_type,
+        reminder_enabled: formData.reminder_enabled,
+        reminder_time: formData.reminder_time,
       };
 
       // Only include frequency_details if it exists and is not null
       if (formData.frequency_details) {
         apiData.frequency_details = formData.frequency_details;
+      } else {
+        // Explicitly set to null if daily, as some backends might expect the key
+        apiData.frequency_details = null;
       }
 
       // 1. Save core data to API
       const savedHabit = await api.saveHabit(user.token, apiData, editingHabit?.id);
       
-      // 2. Save metadata to localStorage
-      const { category, reminder_enabled, reminder_time } = formData;
+      // 2. Save metadata to localStorage (ONLY category now, as reminders are in DB)
+      const { category } = formData;
       const habitId = savedHabit.id || (editingHabit?.id); 
       
       if (habitId) {
         const metadata = JSON.parse(localStorage.getItem(`habit_metadata_${user.id}`) || "{}");
-        metadata[habitId] = { category, reminder_enabled, reminder_time };
+        // Preserve existing metadata but update category
+        metadata[habitId] = { 
+          ...(metadata[habitId] || {}),
+          category 
+        };
         localStorage.setItem(`habit_metadata_${user.id}`, JSON.stringify(metadata));
       }
 
