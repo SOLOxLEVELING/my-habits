@@ -7,8 +7,6 @@ const diffDays = (date1, date2) => {
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 };
 
-const dayNameToIso = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
-
 const toYYYYMMDD = (date) => {
   if (!date) return null;
   const d = new Date(date);
@@ -20,7 +18,7 @@ const toYYYYMMDD = (date) => {
 
 // GET /api/habits
 exports.getAllHabits = async (req, res) => {
-  const userId = req.user.id; // Changed
+  const userId = req.user.id;
   try {
     const { rows } = await db.query(
       `SELECT h.*, s.current_streak, s.longest_streak,
@@ -40,7 +38,7 @@ exports.getAllHabits = async (req, res) => {
 // GET /api/habits/:id
 exports.getHabitById = async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.id; // Changed
+  const userId = req.user.id;
   try {
     const { rows } = await db.query(
       `SELECT h.*, s.current_streak, s.longest_streak,
@@ -61,27 +59,24 @@ exports.getHabitById = async (req, res) => {
 
 // POST /api/habits
 exports.createHabit = async (req, res) => {
-  const userId = req.user.id; // Changed
+  const userId = req.user.id;
+  // FIXED: Destructure the correct fields sent by HabitForm.jsx
   const {
     name,
     description,
     color,
     icon,
-    frequency,
+    frequency_type,     // Received directly
+    frequency_details,  // Received directly
     reminder_enabled,
     reminder_time,
   } = req.body;
-  const isDaily = frequency.length === 7;
-  const frequency_type = isDaily ? "daily" : "weekly";
-  const dayNumbers = frequency.map((day) => dayNameToIso[day]);
-  const frequency_details = isDaily
-    ? null
-    : JSON.stringify({ days: dayNumbers });
 
   const client = await db.connect();
   try {
     await client.query("BEGIN");
     const habitQuery = `INSERT INTO habits (user_id, name, description, color, icon, frequency_type, frequency_details, reminder_enabled, reminder_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *;`;
+    
     const habitValues = [
       userId,
       name,
@@ -89,12 +84,14 @@ exports.createHabit = async (req, res) => {
       color,
       icon,
       frequency_type,
-      frequency_details,
+      frequency_details, // Pass the object directly, pg handles JSON conversion
       reminder_enabled,
       reminder_time,
     ];
+    
     const { rows } = await client.query(habitQuery, habitValues);
     const newHabit = rows[0];
+    
     await client.query("INSERT INTO streaks (habit_id) VALUES ($1)", [
       newHabit.id,
     ]);
@@ -112,23 +109,22 @@ exports.createHabit = async (req, res) => {
 // PUT /api/habits/:id
 exports.updateHabit = async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.id; // Changed
+  const userId = req.user.id;
+  
+  // FIXED: Destructure the correct fields here too
   const {
     name,
     description,
     color,
     icon,
-    frequency,
+    frequency_type,     // Received directly
+    frequency_details,  // Received directly
     reminder_enabled,
     reminder_time,
   } = req.body;
-  const isDaily = frequency.length === 7;
-  const frequency_type = isDaily ? "daily" : "weekly";
-  const dayNumbers = frequency.map((day) => dayNameToIso[day]);
-  const frequency_details = isDaily
-    ? null
-    : JSON.stringify({ days: dayNumbers });
+
   const query = `UPDATE habits SET name = $1, description = $2, color = $3, icon = $4, frequency_type = $5, frequency_details = $6, reminder_enabled = $7, reminder_time = $8 WHERE id = $9 AND user_id = $10 RETURNING *;`;
+  
   const values = [
     name,
     description,
@@ -141,6 +137,7 @@ exports.updateHabit = async (req, res) => {
     id,
     userId,
   ];
+  
   try {
     const { rows } = await db.query(query, values);
     if (rows.length === 0)
@@ -155,7 +152,7 @@ exports.updateHabit = async (req, res) => {
 // DELETE /api/habits/:id
 exports.deleteHabit = async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.id; // Changed
+  const userId = req.user.id;
   try {
     const result = await db.query(
       "DELETE FROM habits WHERE id = $1 AND user_id = $2",
@@ -174,8 +171,6 @@ exports.deleteHabit = async (req, res) => {
 exports.addHabitLog = async (req, res) => {
   const { id: habit_id } = req.params;
   const { date: log_date, note } = req.body;
-  // Note: We don't need userId here because the middleware already ensures
-  // the user can only access their own habits.
 
   try {
     const insertResult = await db.query(
@@ -231,7 +226,7 @@ exports.addHabitLog = async (req, res) => {
 // DELETE /api/habits/:id/logs/:date
 exports.deleteHabitLog = async (req, res) => {
   const { id: habit_id, date: log_date_to_delete } = req.params;
-  const userId = req.user.id; // Changed
+  const userId = req.user.id;
 
   try {
     const streakResult = await db.query(
@@ -281,16 +276,10 @@ exports.deleteHabitLog = async (req, res) => {
 };
 
 // PUT /api/habits/:habitId/logs
-// controllers/habitController.js
-
-// ... (keep all your other functions: getAllHabits, createHabit, etc.) ...
-
-// --- REPLACE THE OLD updateLogNote FUNCTION WITH THIS ---
-// PUT /api/habits/:habitId/logs
 exports.updateLogNote = async (req, res) => {
   const { habitId } = req.params;
   const { log_date, note } = req.body;
-  const userId = req.user.id; // Get user ID from our auth middleware
+  const userId = req.user.id;
 
   if (!log_date) {
     return res.status(400).json({ error: "A date for the log is required." });
@@ -309,8 +298,6 @@ exports.updateLogNote = async (req, res) => {
     );
 
     if (result.rowCount === 0) {
-      // This can happen if the log for that day doesn't exist yet,
-      // or if the habit doesn't belong to the user.
       return res.status(404).json({ error: "Log entry not found for that date." });
     }
 
