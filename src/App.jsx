@@ -1,3 +1,5 @@
+// src/App.jsx
+
 import React, { useState, useEffect } from "react";
 import HabitTracker from "./HabitTracker";
 import LoginPage from "./pages/LoginPage";
@@ -9,18 +11,23 @@ import { LoaderCircle } from "lucide-react";
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [route, setRoute] = useState("/");
+  
+  // FIX 1: Initialize route based on the actual browser URL
+  // This fixes the "Reload" issue.
+  const [route, setRoute] = useState(window.location.pathname);
 
   useEffect(() => {
+    // FIX 2: Listen for the Browser "Back" button
+    const onPopState = () => {
+      setRoute(window.location.pathname);
+    };
+
+    window.addEventListener("popstate", onPopState);
+
     try {
       const savedUser = localStorage.getItem("user");
       if (savedUser) {
         setUser(JSON.parse(savedUser));
-        // Keep them on the current route if it's not auth-related, 
-        // but for this simple app, we usually just show the tracker if logged in.
-      } else {
-        // If no user, we might be at /, /login, or /register. 
-        // Default to / if not set (which it is by default state).
       }
     } catch (error) {
       console.error("Failed to parse user from localStorage", error);
@@ -28,21 +35,32 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+
+    return () => window.removeEventListener("popstate", onPopState);
   }, []);
+
+  // FIX 3: Update the Browser URL when navigating
+  const navigate = (path) => {
+    window.history.pushState({}, "", path);
+    setRoute(path);
+  };
 
   const handleLoginSuccess = (userData) => {
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
+    
+    // FIX 4: Use replaceState for Login
+    // This overwrites the history so hitting "Back" doesn't take you 
+    // back to the Login page (which would cause a loop).
+    window.history.replaceState({}, "", "/");
     setRoute("/");
   };
 
   const handleLogout = () => {
     localStorage.removeItem("user");
     setUser(null);
-    setRoute("/");
+    navigate("/"); 
   };
-
-  const navigate = (path) => setRoute(path);
 
   const pageVariants = {
     initial: { opacity: 0, y: 20 },
@@ -64,36 +82,50 @@ export default function App() {
     );
   }
 
+  // Helper to determine what component to show
+  const getComponent = () => {
+    // If user is logged in, ALWAYS show Tracker (unless you want a specific profile route)
+    if (user) {
+      return <HabitTracker user={user} onLogout={handleLogout} />;
+    }
+
+    // If not logged in, route based on path
+    switch (route) {
+      case "/login":
+        return (
+          <LoginPage
+            onLoginSuccess={handleLoginSuccess}
+            onNavigateToRegister={() => navigate("/register")}
+          />
+        );
+      case "/register":
+        return (
+          <RegisterPage
+            onLoginSuccess={handleLoginSuccess}
+            onNavigateToLogin={() => navigate("/login")}
+          />
+        );
+      default:
+        return (
+          <LandingPage
+            onNavigateToLogin={() => navigate("/login")}
+            onNavigateToRegister={() => navigate("/register")}
+          />
+        );
+    }
+  };
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
-        key={route}
+        key={user ? "dashboard" : route} // Key change ensures animation triggers correctly
         initial="initial"
         animate="in"
         exit="out"
         variants={pageVariants}
         transition={pageTransition}
       >
-        {!user ? (
-          route === "/login" ? (
-            <LoginPage
-              onLoginSuccess={handleLoginSuccess}
-              onNavigateToRegister={() => navigate("/register")}
-            />
-          ) : route === "/register" ? (
-            <RegisterPage
-              onLoginSuccess={handleLoginSuccess}
-              onNavigateToLogin={() => navigate("/login")}
-            />
-          ) : (
-            <LandingPage 
-              onNavigateToLogin={() => navigate("/login")}
-              onNavigateToRegister={() => navigate("/register")}
-            />
-          )
-        ) : (
-          <HabitTracker user={user} onLogout={handleLogout} />
-        )}
+        {getComponent()}
       </motion.div>
     </AnimatePresence>
   );
