@@ -79,14 +79,25 @@ export default function HabitTracker({ user, onLogout }) {
 
   const handleSaveHabit = async (formData) => {
     try {
-      // Split data into API-safe fields and local metadata
-      const { category, reminder_enabled, reminder_time, ...apiData } = formData;
-      
+      // Explicitly construct API data to avoid sending extra fields or nulls that cause 500s
+      const apiData = {
+        name: formData.name,
+        description: formData.description,
+        color: formData.color,
+        icon: formData.icon,
+        frequency_type: formData.frequency_type,
+      };
+
+      // Only include frequency_details if it exists and is not null
+      if (formData.frequency_details) {
+        apiData.frequency_details = formData.frequency_details;
+      }
+
       // 1. Save core data to API
       const savedHabit = await api.saveHabit(user.token, apiData, editingHabit?.id);
       
       // 2. Save metadata to localStorage
-      // We use the ID returned from the API (important for new habits)
+      const { category, reminder_enabled, reminder_time } = formData;
       const habitId = savedHabit.id || (editingHabit?.id); 
       
       if (habitId) {
