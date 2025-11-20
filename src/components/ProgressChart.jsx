@@ -30,10 +30,10 @@ function ProgressChart({ logs }) {
   const labels = ["3w ago", "2w ago", "Last wk", "This wk"];
 
   return (
-    <div className="flex justify-around items-end h-48 bg-slate-800 p-4 rounded-lg w-full">
+    <div className="flex justify-around items-end h-48 bg-slate-100 dark:bg-slate-800 p-4 rounded-lg w-full transition-colors">
       {weeklyCompletions.map((count, index) => (
         <div key={index} className="flex flex-col items-center w-1/4 h-full">
-          <div className="text-sm font-bold text-slate-100 mb-1">{count}</div>
+          <div className="text-sm font-bold text-slate-700 dark:text-slate-100 mb-1">{count}</div>
           <motion.div
             className="w-10 bg-blue-600 rounded-t-sm"
             initial={{ height: 0 }}
@@ -41,7 +41,7 @@ function ProgressChart({ logs }) {
             transition={{ duration: 0.5, type: "spring", stiffness: 50 }}
             title={`${count} completions`}
           ></motion.div>
-          <div className="text-xs text-slate-400 mt-2">{labels[index]}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-2">{labels[index]}</div>
         </div>
       ))}
     </div>

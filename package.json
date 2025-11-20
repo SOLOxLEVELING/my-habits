@@ -12,6 +12,7 @@
   "dependencies": {
     "@microsoft/clarity": "^1.0.0",
     "@tailwindcss/vite": "^4.1.11",
+    "canvas-confetti": "^1.9.4",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.526.0",
     "react": "^19.1.0",

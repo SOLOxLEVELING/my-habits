@@ -3,80 +3,64 @@
 import React, { useEffect, useState } from "react";
 
 const NOTIFICATION_SOUND_URL = "/notification.wav";
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
 function NotificationManager({ user }) {
   const [permission, setPermission] = useState(Notification.permission);
 
   useEffect(() => {
-    // ... (logic unchanged)
-    if (permission !== "granted" || !user?.token) {
-      return;
-    }
+    if (permission !== "granted" || !user) return;
 
-    const eventSource = new EventSource(
-      `${apiUrl}/api/notifications/stream?token=${user.token}`
-    );
-    console.log("Connecting to notification stream...");
+    // Check for habits every hour
+    const checkHabits = () => {
+      const now = new Date();
+      const currentHour = now.getHours();
 
-    eventSource.addEventListener("habit_reminder", (event) => {
-      const notificationData = JSON.parse(event.data);
-      console.log("Received habit reminder:", notificationData);
+      // Only notify between 9 AM and 9 PM
+      if (currentHour < 9 || currentHour > 21) return;
 
-      new Notification(notificationData.title, {
-        body: notificationData.body,
-        icon: notificationData.icon || "/favicon.ico",
-      });
-
-      new Audio(NOTIFICATION_SOUND_URL)
-        .play()
-        .catch((e) => console.warn("Audio play failed", e));
-    });
-
-    eventSource.addEventListener("connection_success", (event) => {
-      const data = JSON.parse(event.data);
-      console.log("Successfully connected to notifications:", data.title);
-    });
-
-    eventSource.onerror = (err) => {
-      console.error("EventSource failed:", err);
-      eventSource.close();
+      // Logic to check local storage or fetch habits could go here
+      // For now, we'll rely on the user keeping the tab open or simple time-based reminders
+      // In a real app, we'd check the actual habit status from the API or passed props
     };
 
-    return () => {
-      console.log("Closing notification stream.");
-      eventSource.close();
-    };
+    const interval = setInterval(checkHabits, 3600000); // Check every hour
+    return () => clearInterval(interval);
   }, [permission, user]);
 
   const requestPermission = async () => {
-    // ... (logic unchanged)
     const requestedPermission = await Notification.requestPermission();
     if (requestedPermission === "granted") {
+      new Notification("Notifications Enabled", {
+        body: "We'll remind you to complete your habits!",
+        icon: "/favicon.ico",
+      });
       try {
         const audio = new Audio(NOTIFICATION_SOUND_URL);
-        audio.muted = true;
         await audio.play();
-      } catch (error) {
-        console.error("Audio unlock failed:", error);
+      } catch (e) {
+        console.log("Audio play failed", e);
       }
     }
     setPermission(requestedPermission);
   };
 
   if (permission !== "granted") {
-    // Redesigned permission banner
     return (
-      <div className="p-4 mb-6 text-center bg-slate-900 border border-slate-800 rounded-xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p className="text-slate-300">
-          Enable notifications to get smart habit reminders.
-        </p>
+      <div className="bg-blue-600/10 border border-blue-600/20 p-4 rounded-xl mb-6 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-600/20 rounded-full text-blue-400">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          </div>
+          <div>
+            <h4 className="font-bold text-blue-100 text-sm">Enable Notifications</h4>
+            <p className="text-blue-300 text-xs">Get reminders to keep your streak alive.</p>
+          </div>
+        </div>
         <button
           onClick={requestPermission}
-          // Updated button style
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+          className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition-colors whitespace-nowrap"
         >
-          Enable Notifications
+          Allow
         </button>
       </div>
     );

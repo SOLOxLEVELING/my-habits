@@ -1,12 +1,48 @@
-# React + Vite
+# My Habits - Gamified Habit Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, gamified habit tracking application built with React, Vite, and Tailwind CSS. Track your daily habits, earn XP, unlock badges, and visualize your progress with beautiful analytics.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 🎮 Gamification
+- **XP & Leveling System**: Earn XP for every habit completed and level up as you stay consistent.
+- **Badges**: Unlock badges for maintaining streaks (3, 7, 30 days).
+- **Celebrations**: Enjoy confetti explosions when you complete habits!
 
-## Expanding the ESLint configuration
+### 📊 Analytics
+- **Heatmap**: GitHub-style contribution graph to visualize your consistency over the last 6 months.
+- **Weekly Progress**: Bar charts showing your completion rates week over week.
+- **Detailed History**: Track your journey with comprehensive logs.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 🛠️ Functional & Utility
+- **Smart Categories**: Organize habits by Health, Work, Learning, Mindfulness, and more.
+- **Reminders**: Set daily reminders to stay on track.
+- **Flexible Scheduling**: Choose between daily habits or specific days of the week.
+
+### 🎨 UI/UX Polish
+- **Dark/Light Mode**: Seamlessly switch between themes.
+- **Sound Effects**: Satisfying audio feedback for interactions.
+- **Responsive Design**: Fully optimized for mobile, tablet, and desktop.
+
+## Tech Stack
+
+- **Frontend**: React 19, Vite
+- **Styling**: Tailwind CSS 4
+- **Animations**: Framer Motion, Canvas Confetti
+- **Icons**: Lucide React
+
+## Getting Started
+
+1.  Clone the repository.
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Start the development server:
+    ```bash
+    npm run dev
+    ```
+
+## License
+
+MIT

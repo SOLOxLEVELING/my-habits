@@ -1,23 +1,26 @@
-// src/App.jsx
-
 import React, { useState, useEffect } from "react";
 import HabitTracker from "./HabitTracker";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import LandingPage from "./pages/LandingPage";
 import { motion, AnimatePresence } from "framer-motion";
 import { LoaderCircle } from "lucide-react";
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [route, setRoute] = useState("/login");
+  const [route, setRoute] = useState("/");
 
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem("user");
       if (savedUser) {
         setUser(JSON.parse(savedUser));
-        setRoute("/");
+        // Keep them on the current route if it's not auth-related, 
+        // but for this simple app, we usually just show the tracker if logged in.
+      } else {
+        // If no user, we might be at /, /login, or /register. 
+        // Default to / if not set (which it is by default state).
       }
     } catch (error) {
       console.error("Failed to parse user from localStorage", error);
@@ -36,7 +39,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem("user");
     setUser(null);
-    setRoute("/login");
+    setRoute("/");
   };
 
   const navigate = (path) => setRoute(path);
@@ -72,14 +75,19 @@ export default function App() {
         transition={pageTransition}
       >
         {!user ? (
-          route === "/register" ? (
+          route === "/login" ? (
+            <LoginPage
+              onLoginSuccess={handleLoginSuccess}
+              onNavigateToRegister={() => navigate("/register")}
+            />
+          ) : route === "/register" ? (
             <RegisterPage
               onLoginSuccess={handleLoginSuccess}
               onNavigateToLogin={() => navigate("/login")}
             />
           ) : (
-            <LoginPage
-              onLoginSuccess={handleLoginSuccess}
+            <LandingPage 
+              onNavigateToLogin={() => navigate("/login")}
               onNavigateToRegister={() => navigate("/register")}
             />
           )

@@ -1,17 +1,20 @@
-// src/HabitTracker.jsx
-
 import React, { useState, useEffect, useCallback } from "react";
-import { Plus, List, Calendar, Goal, LogOut } from "lucide-react";
+import { Plus, List, Calendar, Goal, LogOut, BarChart2, Sun, Moon } from "lucide-react";
+import confetti from "canvas-confetti";
 import HabitDashboard from "./pages/HabitDashboard";
 import HabitForm from "./components/HabitForm";
 import TodayView from "./pages/TodayView";
 import HabitDetailPage from "./pages/HabitDetailPage";
+import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import NotificationManager from "./components/NotificationManager";
 import * as api from "./api";
+import { useTheme } from "./context/ThemeContext";
+import { playSound } from "./utils/sound";
 
 const isoToDayName = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function HabitTracker({ user, onLogout }) {
+  const { theme, toggleTheme } = useTheme();
   const [habits, setHabits] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState(null);
@@ -60,6 +63,11 @@ export default function HabitTracker({ user, onLogout }) {
     loadHabits();
   }, [loadHabits]);
 
+  // Calculate total completions for XP
+  const totalCompletions = habits.reduce((total, habit) => {
+    return total + (habit.logs ? habit.logs.length : 0);
+  }, 0);
+
   const handleSaveHabit = async (formData) => {
     try {
       await api.saveHabit(user.token, formData, editingHabit?.id);
@@ -100,6 +108,8 @@ export default function HabitTracker({ user, onLogout }) {
     if (!habitToToggle) return;
 
     const today = new Date().toISOString().split("T")[0];
+    const isCompleting = !habitToToggle.completed;
+
     try {
       await api.toggleHabitLog(
         user.token,
@@ -107,6 +117,25 @@ export default function HabitTracker({ user, onLogout }) {
         today,
         habitToToggle.completed
       );
+      
+      // Optimistic update for immediate feedback
+      setHabits(prev => prev.map(h => {
+        if (h.id === habitId) {
+          return { ...h, completed: isCompleting };
+        }
+        return h;
+      }));
+
+      if (isCompleting) {
+        playSound("complete");
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6']
+        });
+      }
+
       await loadHabits();
     } catch (error) {
       console.error("Error toggling habit completion:", error);
@@ -144,25 +173,32 @@ export default function HabitTracker({ user, onLogout }) {
   }
 
   return (
-    <div className="bg-slate-950 min-h-screen text-white font-sans p-4 sm:p-6 lg:p-8">
+    <div className="bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-900 dark:text-white font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-300">
       <div className="max-w-5xl mx-auto relative">
         <NotificationManager user={user} />
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-600/20 rounded-lg">
-              <Goal className="w-6 h-6 text-blue-400" />
+              <Goal className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-slate-100">
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-100">
               Habit Tracker
             </h1>
           </div>
           <div className="flex items-center gap-4 self-end sm:self-center">
-            <span className="text-slate-400 text-sm hidden sm:block">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+              aria-label="Toggle Theme"
+            >
+              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <span className="text-slate-500 dark:text-slate-400 text-sm hidden sm:block">
               Welcome, {user.username}!
             </span>
             <button
               onClick={onLogout}
-              className="flex items-center gap-2 text-slate-400 hover:text-slate-100 bg-slate-800 hover:bg-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors"
+              className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors"
             >
               <LogOut size={16} />
               <span className="hidden sm:inline">Logout</span>
@@ -180,13 +216,13 @@ export default function HabitTracker({ user, onLogout }) {
         )}
 
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-          <nav className="flex bg-slate-800 p-1.5 rounded-lg w-full sm:w-auto">
+          <nav className="flex bg-slate-200 dark:bg-slate-800 p-1.5 rounded-lg w-full sm:w-auto transition-colors duration-300">
             <button
               onClick={() => setActiveView("today")}
               className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors text-sm ${
                 activeView === "today"
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-400 hover:bg-slate-700/50"
+                  ? "bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-300/50 dark:hover:bg-slate-700/50"
               }`}
             >
               <Calendar size={18} /> Today
@@ -195,11 +231,21 @@ export default function HabitTracker({ user, onLogout }) {
               onClick={() => setActiveView("all")}
               className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors text-sm ${
                 activeView === "all"
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-400 hover:bg-slate-700/50"
+                  ? "bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-300/50 dark:hover:bg-slate-700/50"
               }`}
             >
               <List size={18} /> All Habits
+            </button>
+            <button
+              onClick={() => setActiveView("analytics")}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors text-sm ${
+                activeView === "analytics"
+                  ? "bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-300/50 dark:hover:bg-slate-700/50"
+              }`}
+            >
+              <BarChart2 size={18} /> Analytics
             </button>
           </nav>
           <button
@@ -218,9 +264,12 @@ export default function HabitTracker({ user, onLogout }) {
               onToggleComplete={handleToggleComplete}
               onSelectHabit={handleSelectHabit}
             />
+          ) : activeView === "analytics" ? (
+            <AnalyticsDashboard habits={habits} />
           ) : (
             <HabitDashboard
               habits={habits}
+              totalCompletions={totalCompletions}
               onEdit={handleOpenForm}
               onDelete={handleDeleteHabit}
               onToggleComplete={handleToggleComplete}
