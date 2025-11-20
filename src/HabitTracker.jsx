@@ -27,6 +27,8 @@ export default function HabitTracker({ user, onLogout }) {
     try {
       setError(null);
       const data = await api.fetchHabits(user.token);
+      const metadata = JSON.parse(localStorage.getItem(`habit_metadata_${user.id}`) || "{}");
+
       const formattedHabits = data.map((habit) => {
         const today = new Date().toISOString().split("T")[0];
         const logs = habit.logs || [];
@@ -44,12 +46,19 @@ export default function HabitTracker({ user, onLogout }) {
             (dayNum) => isoToDayName[dayNum]
           );
         }
+        
+        // Merge local metadata
+        const localData = metadata[habit.id] || {};
+        
         return {
           ...habit,
           frequency,
           logs,
           completed: completedToday,
           loggedDates,
+          category: localData.category || "Health", // Default if missing
+          reminder_enabled: localData.reminder_enabled || false,
+          reminder_time: localData.reminder_time || "09:00",
         };
       });
       setHabits(formattedHabits);
@@ -70,7 +79,22 @@ export default function HabitTracker({ user, onLogout }) {
 
   const handleSaveHabit = async (formData) => {
     try {
-      await api.saveHabit(user.token, formData, editingHabit?.id);
+      // Split data into API-safe fields and local metadata
+      const { category, reminder_enabled, reminder_time, ...apiData } = formData;
+      
+      // 1. Save core data to API
+      const savedHabit = await api.saveHabit(user.token, apiData, editingHabit?.id);
+      
+      // 2. Save metadata to localStorage
+      // We use the ID returned from the API (important for new habits)
+      const habitId = savedHabit.id || (editingHabit?.id); 
+      
+      if (habitId) {
+        const metadata = JSON.parse(localStorage.getItem(`habit_metadata_${user.id}`) || "{}");
+        metadata[habitId] = { category, reminder_enabled, reminder_time };
+        localStorage.setItem(`habit_metadata_${user.id}`, JSON.stringify(metadata));
+      }
+
       await loadHabits();
       handleCloseForm();
     } catch (error) {

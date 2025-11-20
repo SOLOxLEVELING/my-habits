@@ -91,13 +91,13 @@ function HabitForm({ habit, onSave, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-end sm:items-center z-50 sm:p-4">
       <motion.div
         variants={modalVariants}
         initial="hidden"
         animate="visible"
         exit="exit"
-        className="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-md m-4 border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl p-5 sm:p-8 shadow-2xl w-full sm:max-w-md border-t sm:border border-slate-200 dark:border-slate-700 max-h-[90vh] sm:max-h-[85vh] overflow-y-auto"
       >
         <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-slate-100">
           {habit ? "Edit Habit" : "Create New Habit"}
@@ -114,17 +114,17 @@ function HabitForm({ habit, onSave, onClose }) {
 
           <div>
             <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Icon, Color & Category</label>
-            <div className="flex flex-col gap-4">
-              <div className="flex gap-4">
-                <div className="relative w-1/2">
+            <div className="flex flex-col gap-3 sm:gap-4">
+              <div className="flex gap-3 sm:gap-4">
+                <div className="relative w-1/3 sm:w-1/2">
                   <label htmlFor="icon" className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Icon</label>
-                  <select name="icon" id="icon" value={formData.icon} onChange={handleChange} className="w-full appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg pl-3 pr-8 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-lg transition-colors" style={{ fontSize: "1.25rem" }}>
+                  <select name="icon" id="icon" value={formData.icon} onChange={handleChange} className="w-full appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg pl-2 pr-6 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-lg transition-colors" style={{ fontSize: "1.25rem" }}>
                     {iconOptions.map((icon) => <option key={icon} value={icon} style={{ fontSize: "1.25rem" }}>{icon}</option>)}
                   </select>
                 </div>
-                <div className="w-1/2">
+                <div className="w-2/3 sm:w-1/2">
                   <label htmlFor="category" className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Category</label>
-                  <select name="category" id="category" value={formData.category} onChange={handleChange} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-900 dark:text-slate-100 text-sm transition-colors">
+                  <select name="category" id="category" value={formData.category} onChange={handleChange} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-900 dark:text-slate-100 text-sm transition-colors">
                     <option value="Health">Health</option>
                     <option value="Work">Work</option>
                     <option value="Learning">Learning</option>
